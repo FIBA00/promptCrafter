@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generated Prompt - PromptCrafter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 1rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen flex flex-col">
+  <header class="p-6 text-center">
+    <h1 class="text-4xl font-extrabold tracking-wide">PromptCrafter</h1>
+    <p class="text-gray-400">Your custom AI prompt is ready</p>
+  </header>
+
+  <div class="flex-1 flex justify-center px-4 py-8">
+    <div class="w-full max-w-4xl">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Structured Prompt -->
+        <div class="glass p-6 shadow-xl">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-blue-400">Structured Prompt</h2>
+            <button onclick="copyToClipboard('structured-prompt')" 
+                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-medium flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre id="structured-prompt" class="bg-gray-900 p-4 rounded-lg text-gray-100 text-sm h-72 overflow-y-auto">{{ structured }}</pre>
+        </div>
+        
+        <!-- Natural Prompt -->
+        <div class="glass p-6 shadow-xl">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-green-400">Natural Prompt</h2>
+            <button onclick="copyToClipboard('natural-prompt')" 
+                    class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm font-medium flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre id="natural-prompt" class="bg-gray-900 p-4 rounded-lg text-gray-100 text-sm h-72 overflow-y-auto">{{ natural }}</pre>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="flex justify-center mt-8 space-x-4">
+        <a href="/" class="bg-gray-700 hover:bg-gray-800 px-6 py-2 rounded-lg font-semibold">Create New Prompt</a>
+        <button id="save-btn" class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold">
+          Save Prompt
+        </button>
+        <button id="download-btn" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg font-semibold flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center py-6 text-sm text-gray-500">
+    &copy; 2025 PromptCrafter. Flask powered. Built with ❤️ by Fraol.
+  </footer>
+
+  <script>
+    function copyToClipboard(elementId) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Prompt copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+      }, 10);
+      
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 300);
+      }, 3000);
+    }
+    
+    document.getElementById('download-btn').addEventListener('click', function() {
+      const structured = document.getElementById('structured-prompt').textContent;
+      const natural = document.getElementById('natural-prompt').textContent;
+      const content = `STRUCTURED PROMPT:\n\n${structured}\n\n\nNATURAL PROMPT:\n\n${natural}`;
+      
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'promptcrafter-prompt.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast('Prompt downloaded successfully!');
+    });
+    
+    // Save button functionality
+    document.getElementById('save-btn').addEventListener('click', function() {
+      const structured = document.getElementById('structured-prompt').textContent;
+      const natural = document.getElementById('natural-prompt').textContent;
+      
+      {% if save_option %}
+        // Show a title input dialog
+        const title = prompt('Enter a title for this prompt:', 'My Prompt');
+        if (title) {
+          const isPublic = confirm('Would you like to make this prompt public? Click OK for public, Cancel for private.');
+          
+          // Create form data
+          const formData = new FormData();
+          formData.append('title', title);
+          formData.append('role', '{{ role }}');
+          formData.append('task', '{{ task }}');
+          formData.append('constraints', '{{ constraints }}');
+          formData.append('output', '{{ output }}');
+          formData.append('personality', '{{ personality }}');
+          formData.append('structured_prompt', structured);
+          formData.append('natural_prompt', natural);
+          formData.append('is_public', isPublic ? 'true' : 'false');
+          
+          // Send to backend
+          fetch('/save_prompt', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              showToast('Prompt saved successfully!');
+            } else {
+              showToast('Error saving prompt: ' + (data.error || 'Unknown error'));
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showToast('Failed to save prompt. Please try again.');
+          });
+        }
+      {% else %}
+        showToast('Please log in to save prompts');
+        setTimeout(() => {
+          window.location.href = '/login?next=/generate';
+        }, 2000);
+      {% endif %}
+    });
+  </script>
+</body>
+</html>

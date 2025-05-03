@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - PromptCrafter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen flex flex-col">
+  <header class="p-6 text-center">
+    <a href="/" class="inline-block">
+      <h1 class="text-4xl font-extrabold tracking-wide">PromptCrafter</h1>
+    </a>
+    <p class="text-gray-400">Create an account to save your prompts</p>
+  </header>
+
+  <div class="flex-1 flex justify-center items-center px-4">
+    <div class="w-full max-w-md">
+      <div class="glass p-8 shadow-xl">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="mb-6 bg-red-600/30 p-4 rounded-lg border border-red-700">
+              {% for message in messages %}
+                <p class="text-white">{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        
+        <h2 class="text-2xl font-bold mb-6 text-center">Create Account</h2>
+        
+        <form action="{{ url_for('register') }}" method="post" class="space-y-6">
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
+            <input type="text" id="username" name="username" required
+                   class="mt-1 w-full rounded-md p-3 bg-gray-900 text-white border border-gray-700 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
+            <input type="email" id="email" name="email" required
+                   class="mt-1 w-full rounded-md p-3 bg-gray-900 text-white border border-gray-700 focus:outline-none">
+          </div>
+
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+            <input type="password" id="password" name="password" required
+                   class="mt-1 w-full rounded-md p-3 bg-gray-900 text-white border border-gray-700 focus:outline-none">
+            <p class="mt-1 text-xs text-gray-400">Must be at least 8 characters long</p>
+          </div>
+
+          <div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg text-white font-semibold">
+              Create Account
+            </button>
+          </div>
+        </form>
+        
+        <div class="mt-6 text-center text-gray-400 text-sm">
+          <p>Already have an account? <a href="{{ url_for('login') }}" class="text-blue-400 hover:underline">Sign in</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center py-6 text-sm text-gray-500">
+    &copy; 2025 PromptCrafter. Flask powered. Built with ❤️ by Fraol.
+  </footer>
+</body>
+</html> 

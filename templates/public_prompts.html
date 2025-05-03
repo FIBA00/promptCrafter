@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Public Prompts - PromptCrafter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen flex flex-col">
+  <header class="p-6 text-center">
+    <a href="/" class="inline-block">
+      <h1 class="text-4xl font-extrabold tracking-wide">PromptCrafter</h1>
+    </a>
+    <p class="text-gray-400">Explore public prompts shared by the community</p>
+  </header>
+
+  <div class="flex justify-center px-4 py-6">
+    <div class="w-full max-w-6xl">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-2xl font-bold">Public Prompts</h2>
+        <div class="flex space-x-4">
+          <a href="{{ url_for('home') }}" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">
+            Create New Prompt
+          </a>
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('my_prompts') }}" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium">
+              My Prompts
+            </a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium">
+              Sign In
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-6 bg-blue-600/30 p-4 rounded-lg border border-blue-700">
+            {% for message in messages %}
+              <p class="text-white">{{ message }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="mb-8">
+        <div class="glass p-4 mb-8">
+          <form action="{{ url_for('public_prompts') }}" method="get" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+              <input type="text" name="search" placeholder="Search by role, task or personality..." 
+                    class="w-full rounded-md p-3 bg-gray-900 text-white border border-gray-700 focus:outline-none"
+                    value="{{ request.args.get('search', '') }}">
+            </div>
+            <div>
+              <select name="sort" class="rounded-md p-3 bg-gray-900 text-white border border-gray-700 focus:outline-none">
+                <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Newest First</option>
+                <option value="oldest" {% if request.args.get('sort') == 'oldest' %}selected{% endif %}>Oldest First</option>
+              </select>
+            </div>
+            <div>
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-lg text-white">
+                Search
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {% if prompts %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {% for prompt in prompts %}
+            <div class="glass p-6 rounded-xl transition-transform hover:scale-[1.02] cursor-pointer"
+                 onclick="window.location.href='{{ url_for('view_prompt', prompt_id=prompt.id) }}'">
+              <div class="flex justify-between items-start mb-3">
+                <h3 class="text-xl font-bold text-blue-400 truncate pr-4">{{ prompt.title }}</h3>
+              </div>
+              <p class="text-gray-300 text-sm mb-2 truncate"><strong>Role:</strong> {{ prompt.role }}</p>
+              <p class="text-gray-300 text-sm mb-2 truncate"><strong>Task:</strong> {{ prompt.task }}</p>
+              <p class="text-gray-300 text-sm mb-4 truncate"><strong>Output:</strong> {{ prompt.output }}</p>
+              <div class="flex justify-between items-center text-xs text-gray-400">
+                <span>{{ prompt.created_at.strftime('%b %d, %Y') }}</span>
+                <span>By {{ prompt.author.username }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="glass p-12 text-center">
+          <p class="text-xl text-gray-400 mb-6">No public prompts found.</p>
+          <a href="{{ url_for('home') }}" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg text-white font-semibold">
+            Create the First Public Prompt
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <footer class="text-center py-6 text-sm text-gray-500 mt-auto">
+    &copy; 2025 PromptCrafter. Flask powered. Built with ❤️ by Fraol.
+  </footer>
+</body>
+</html> 
