@@ -62,9 +62,6 @@
       <!-- Action Buttons -->
       <div class="flex justify-center mt-8 space-x-4">
         <a href="/" class="bg-gray-700 hover:bg-gray-800 px-6 py-2 rounded-lg font-semibold">Create New Prompt</a>
-        <button id="save-btn" class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold">
-          Save Prompt
-        </button>
         <button id="download-btn" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded-lg font-semibold flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -125,55 +122,6 @@
       URL.revokeObjectURL(url);
       
       showToast('Prompt downloaded successfully!');
-    });
-    
-    // Save button functionality
-    document.getElementById('save-btn').addEventListener('click', function() {
-      const structured = document.getElementById('structured-prompt').textContent;
-      const natural = document.getElementById('natural-prompt').textContent;
-      
-      {% if save_option %}
-        // Show a title input dialog
-        const title = prompt('Enter a title for this prompt:', 'My Prompt');
-        if (title) {
-          const isPublic = confirm('Would you like to make this prompt public? Click OK for public, Cancel for private.');
-          
-          // Create form data
-          const formData = new FormData();
-          formData.append('title', title);
-          formData.append('role', '{{ role }}');
-          formData.append('task', '{{ task }}');
-          formData.append('constraints', '{{ constraints }}');
-          formData.append('output', '{{ output }}');
-          formData.append('personality', '{{ personality }}');
-          formData.append('structured_prompt', structured);
-          formData.append('natural_prompt', natural);
-          formData.append('is_public', isPublic ? 'true' : 'false');
-          
-          // Send to backend
-          fetch('/save_prompt', {
-            method: 'POST',
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showToast('Prompt saved successfully!');
-            } else {
-              showToast('Error saving prompt: ' + (data.error || 'Unknown error'));
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            showToast('Failed to save prompt. Please try again.');
-          });
-        }
-      {% else %}
-        showToast('Please log in to save prompts');
-        setTimeout(() => {
-          window.location.href = '/login?next=/generate';
-        }, 2000);
-      {% endif %}
     });
   </script>
 </body>

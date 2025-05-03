@@ -35,11 +35,11 @@
             {{ 'Public' if prompt.is_public else 'Private' }}
           </span>
           {% if prompt.user_id == current_user.id %}
-            <a href="{{ url_for('my_prompts') }}" class="bg-gray-700 hover:bg-gray-800 px-4 py-2 rounded text-sm">
+            <a href="{{ url_for('prompts.my_prompts') }}" class="bg-gray-700 hover:bg-gray-800 px-4 py-2 rounded text-sm">
               Back to My Prompts
             </a>
           {% else %}
-            <a href="{{ url_for('public_prompts') }}" class="bg-gray-700 hover:bg-gray-800 px-4 py-2 rounded text-sm">
+            <a href="{{ url_for('prompts.public_prompts') }}" class="bg-gray-700 hover:bg-gray-800 px-4 py-2 rounded text-sm">
               Back to Public Prompts
             </a>
           {% endif %}

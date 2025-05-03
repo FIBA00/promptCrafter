@@ -1,6 +1,7 @@
 import unittest
 from app import create_app
-from models import db, User, Prompt
+from extensions import db
+from models import User, Prompt
 from werkzeug.security import check_password_hash
 
 class TestModels(unittest.TestCase):

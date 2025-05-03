@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash
-from models import db, User
-from flask_wtf.csrf import CSRFProtect
+from extensions import db
+from models import User
 
 # Initialize blueprint
 auth_bp = Blueprint('auth', __name__)

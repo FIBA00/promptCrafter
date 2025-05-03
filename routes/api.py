@@ -2,21 +2,15 @@ from flask import Blueprint, request, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from utils import build_structured_prompt, build_natural_prompt
-from models import db, Prompt, User
+from extensions import db
 from flask_login import current_user
 import logging
+from models import Prompt, User
 
 # Initialize blueprint
 api_bp = Blueprint('api', __name__)
 
-# Initialize limiter for rate limiting
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
-
 @api_bp.route('/generate', methods=['POST'])
-@limiter.limit("30 per minute")
 def api_generate_prompt():
     try:
         # Check for valid JSON payload
@@ -55,7 +49,6 @@ def api_generate_prompt():
         return jsonify({'error': 'Server error', 'details': str(e)}), 500
 
 @api_bp.route('/prompts', methods=['GET'])
-@limiter.limit("100 per minute")
 def api_get_prompts():
     """Get public prompts with pagination and filtering options"""
     try:
