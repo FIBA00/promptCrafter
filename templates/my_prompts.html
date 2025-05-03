@@ -1,140 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Prompts - PromptCrafter</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .glass {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 1rem;
-    }
-  </style>
-</head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen flex flex-col">
-  <header class="p-6 text-center">
-    <a href="/" class="inline-block">
-      <h1 class="text-4xl font-extrabold tracking-wide">PromptCrafter</h1>
-    </a>
-    <p class="text-gray-400">Your saved prompts</p>
-  </header>
+{% extends "base.html" %}
 
-  <div class="flex justify-center px-4 py-6">
-    <div class="w-full max-w-6xl">
-      <div class="flex justify-between items-center mb-8">
-        <h2 class="text-2xl font-bold">My Prompts</h2>
-        <div class="flex space-x-4">
-          <a href="{{ url_for('home') }}" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium">
-            Create New Prompt
-          </a>
-          <a href="{{ url_for('public_prompts') }}" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium">
-            Explore Public Prompts
-          </a>
-        </div>
-      </div>
+{% block title %}My Prompts{% endblock %}
 
-      {% with messages = get_flashed_messages() %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>My Prompts</h1>
+        <a href="{{ url_for('main.home') }}" class="btn btn-primary">Create New Prompt</a>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
         {% if messages %}
-          <div class="mb-6 bg-blue-600/30 p-4 rounded-lg border border-blue-700">
             {% for message in messages %}
-              <p class="text-white">{{ message }}</p>
+                <div class="alert alert-info">{{ message }}</div>
             {% endfor %}
-          </div>
         {% endif %}
-      {% endwith %}
-
-      {% if prompts %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {% for prompt in prompts %}
-            <div class="glass p-6 rounded-xl transition-transform hover:scale-[1.02] cursor-pointer"
-                 onclick="window.location.href='{{ url_for('view_prompt', prompt_id=prompt.id) }}'">
-              <div class="flex justify-between items-start mb-3">
-                <h3 class="text-xl font-bold text-blue-400 truncate pr-4">{{ prompt.title }}</h3>
-                <span class="text-xs bg-{{ 'green' if prompt.is_public else 'gray' }}-700 px-2 py-1 rounded">
-                  {{ 'Public' if prompt.is_public else 'Private' }}
-                </span>
-              </div>
-              <p class="text-gray-300 text-sm mb-2 truncate"><strong>Role:</strong> {{ prompt.role }}</p>
-              <p class="text-gray-300 text-sm mb-2 truncate"><strong>Task:</strong> {{ prompt.task }}</p>
-              <p class="text-gray-300 text-sm mb-4 truncate"><strong>Output:</strong> {{ prompt.output }}</p>
-              <div class="flex justify-between items-center text-xs text-gray-400">
-                <span>{{ prompt.created_at.strftime('%b %d, %Y') }}</span>
-                <div class="flex space-x-2">
-                  <button class="text-red-400 hover:text-red-300" onclick="event.stopPropagation(); confirmDelete({{ prompt.id }})">
-                    Delete
-                  </button>
-                  <button class="text-blue-400 hover:text-blue-300" onclick="event.stopPropagation(); togglePublic({{ prompt.id }}, {{ 'true' if not prompt.is_public else 'false' }})">
-                    {{ 'Make Public' if not prompt.is_public else 'Make Private' }}
-                  </button>
+    {% endwith %}
+    
+    <!-- Search Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form action="{{ url_for('prompts.my_prompts') }}" method="GET" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Search your prompts..." value="{{ search }}">
                 </div>
-              </div>
-            </div>
-          {% endfor %}
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+            </form>
         </div>
-      {% else %}
-        <div class="glass p-12 text-center">
-          <p class="text-xl text-gray-400 mb-6">You haven't saved any prompts yet.</p>
-          <a href="{{ url_for('home') }}" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg text-white font-semibold">
-            Create Your First Prompt
-          </a>
+    </div>
+    
+    {% if prompts %}
+        <div class="row">
+            {% for prompt in prompts %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">{{ prompt.title }}</h3>
+                            <span class="badge {% if prompt.is_public %}bg-success{% else %}bg-secondary{% endif %}">
+                                {% if prompt.is_public %}Public{% else %}Private{% endif %}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Role:</strong> {{ prompt.role }}</p>
+                            <p><strong>Task:</strong> {{ prompt.task }}</p>
+                            {% if prompt.tags %}
+                            <p>
+                                <strong>Tags:</strong> 
+                                {% for tag in prompt.tags.split(',') %}
+                                    <span class="badge bg-info text-dark me-1">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                            <p class="text-muted">Created: {{ prompt.created_at.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between">
+                            <a href="{{ url_for('prompts.view_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-primary">View</a>
+                            <div>
+                                <a href="{{ url_for('prompts.edit_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-secondary me-2">Edit</a>
+                                <a href="{{ url_for('prompts.delete_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-danger">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <footer class="text-center py-6 text-sm text-gray-500 mt-auto">
-    &copy; 2025 PromptCrafter. Flask powered. Built with ❤️ by Fraol.
-  </footer>
-
-  <div id="delete-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden">
-    <div class="bg-gray-800 p-6 rounded-lg max-w-md w-full">
-      <h3 class="text-xl font-bold mb-4">Delete Prompt</h3>
-      <p class="mb-6">Are you sure you want to delete this prompt? This action cannot be undone.</p>
-      <div class="flex justify-end space-x-4">
-        <button onclick="closeModal()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
-          Cancel
-        </button>
-        <button id="confirm-delete-btn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    function confirmDelete(promptId) {
-      const modal = document.getElementById('delete-modal');
-      modal.classList.remove('hidden');
-      
-      const deleteBtn = document.getElementById('confirm-delete-btn');
-      deleteBtn.onclick = function() {
-        window.location.href = `/delete_prompt/${promptId}`;
-      };
-    }
-    
-    function closeModal() {
-      const modal = document.getElementById('delete-modal');
-      modal.classList.add('hidden');
-    }
-    
-    function togglePublic(promptId, makePublic) {
-      fetch(`/toggle_public/${promptId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_public: makePublic })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          window.location.reload();
-        }
-      });
-    }
-  </script>
-</body>
-</html> 
+        
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mt-4">
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('prompts.my_prompts', page=pagination.prev_num, search=search) }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        {% if page_num == pagination.page %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('prompts.my_prompts', page=page_num, search=search) }}">{{ page_num }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('prompts.my_prompts', page=pagination.next_num, search=search) }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <h4 class="alert-heading">No prompts found!</h4>
+            {% if search %}
+                <p>No prompts match your search criteria. <a href="{{ url_for('prompts.my_prompts') }}">Clear search</a></p>
+            {% else %}
+                <p>You haven't created any prompts yet. <a href="{{ url_for('main.home') }}">Create your first prompt</a>.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

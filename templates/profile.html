@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Your Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Your Profile</h2>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-info">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.profile') }}">
+                        {{ csrf_token() }}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                        </div>
+                        
+                        <hr class="my-4">
+                        <h4>Change Password</h4>
+                        <p class="text-muted">Leave blank if you don't want to change your password</p>
+                        
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password">
+                            <div class="form-text">Required to make any changes to your profile</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="mb-0">Account Statistics</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Joined:</strong> {{ user.created_at.strftime('%B %d, %Y') }}</p>
+                    <p><strong>Total Prompts:</strong> {{ user.prompts.count() }}</p>
+                    <p><strong>Public Prompts:</strong> {{ user.prompts.filter_by(is_public=True).count() }}</p>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 mt-4">
+                <a href="{{ url_for('prompts.my_prompts') }}" class="btn btn-outline-primary">View My Prompts</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm Delete{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="mb-0">Confirm Deletion</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading">Warning!</h4>
+                        <p>You are about to delete the prompt "<strong>{{ prompt.title }}</strong>". This action cannot be undone.</p>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4 class="mb-0">Prompt Details</h4>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Role:</strong> {{ prompt.role }}</p>
+                            <p><strong>Task:</strong> {{ prompt.task }}</p>
+                            <p><strong>Created:</strong> {{ prompt.created_at.strftime('%B %d, %Y') }}</p>
+                            <p><strong>Public:</strong> {% if prompt.is_public %}Yes{% else %}No{% endif %}</p>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('prompts.delete_prompt', prompt_id=prompt.id) }}">
+                        {{ csrf_token() }}
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                            <a href="{{ url_for('prompts.view_prompt', prompt_id=prompt.id) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

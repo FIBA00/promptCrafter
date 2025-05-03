@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Prompt{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Edit Prompt</h2>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-info">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('prompts.edit_prompt', prompt_id=prompt.id) }}">
+                        {{ csrf_token() }}
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ prompt.title }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <input type="text" class="form-control" id="role" name="role" value="{{ prompt.role }}" required>
+                            <div class="form-text">Example: Senior Software Engineer, Financial Analyst, Research Scientist</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="task" class="form-label">Task</label>
+                            <textarea class="form-control" id="task" name="task" rows="3" required>{{ prompt.task }}</textarea>
+                            <div class="form-text">What do you want the AI to help with?</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="constraints" class="form-label">Constraints (Optional)</label>
+                            <textarea class="form-control" id="constraints" name="constraints" rows="3">{{ prompt.constraints }}</textarea>
+                            <div class="form-text">Limitations, specific requirements, or context</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="output" class="form-label">Output Style</label>
+                            <input type="text" class="form-control" id="output" name="output" value="{{ prompt.output }}" required>
+                            <div class="form-text">Example: step-by-step, bullet points, code examples, comparative analysis</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="personality" class="form-label">Personality/Tone</label>
+                            <input type="text" class="form-control" id="personality" name="personality" value="{{ prompt.personality }}" required>
+                            <div class="form-text">Example: concise and technical, thoughtful and educational, enthusiastic and encouraging</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags (comma-separated)</label>
+                            <input type="text" class="form-control" id="tags" name="tags" value="{{ prompt.tags }}">
+                            <div class="form-text">Example: programming, data science, interview, documentation</div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_public" name="is_public" {% if prompt.is_public %}checked{% endif %}>
+                            <label class="form-check-label" for="is_public">
+                                Make this prompt public
+                            </label>
+                            <div class="form-text">Public prompts can be viewed and used by anyone</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <div>
+                                <a href="{{ url_for('prompts.view_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <a href="{{ url_for('prompts.delete_prompt', prompt_id=prompt.id) }}" class="btn btn-danger">Delete</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-10 offset-md-1">
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h3 class="mb-0">Preview</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Structured Prompt</h4>
+                    <pre class="bg-light p-3 rounded" id="structured-preview">{{ prompt.structured_prompt }}</pre>
+                    
+                    <h4 class="mt-4">Natural Prompt</h4>
+                    <pre class="bg-light p-3 rounded" id="natural-preview">{{ prompt.natural_prompt }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Live preview functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleInput = document.getElementById('role');
+        const taskInput = document.getElementById('task');
+        const constraintsInput = document.getElementById('constraints');
+        const outputInput = document.getElementById('output');
+        const personalityInput = document.getElementById('personality');
+        const structuredPreview = document.getElementById('structured-preview');
+        const naturalPreview = document.getElementById('natural-preview');
+        
+        function updatePreviews() {
+            const role = roleInput.value;
+            const task = taskInput.value;
+            const constraints = constraintsInput.value;
+            const output = outputInput.value;
+            const personality = personalityInput.value;
+            
+            if (role && task && output && personality) {
+                // Build structured preview
+                structuredPreview.textContent = `
+[1. ROLE or CONTEXTUAL SETTING]: Imagine you are a ${role}.
+
+[2. OBJECTIVE or TASK]: I want you to help me ${task}.
+
+[3. CONSTRAINTS & RESOURCES]: Here's what I already have / can't do / must consider:
+${constraints}
+
+[4. PREFERRED OUTPUT STYLE]: I want the response to be in ${output}.
+
+[5. BONUS – PERSONAL TOUCH]: Think like ${personality}.
+                `.trim();
+                
+                // Build natural preview
+                naturalPreview.textContent = `
+Imagine you are ${role}.
+I want you to help me ${task}.
+Constraints: ${constraints}
+Output: ${output}
+Act like ${personality}.
+                `.trim();
+            }
+        }
+        
+        // Add input event listeners
+        roleInput.addEventListener('input', updatePreviews);
+        taskInput.addEventListener('input', updatePreviews);
+        constraintsInput.addEventListener('input', updatePreviews);
+        outputInput.addEventListener('input', updatePreviews);
+        personalityInput.addEventListener('input', updatePreviews);
+    });
+</script>
+{% endblock %} 

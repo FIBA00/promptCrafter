@@ -14,9 +14,13 @@ PromptCrafter is a web application that helps users create effective AI prompts 
 
 - **Structured Prompt Generation**: Create well-organized prompts following best practices
 - **Personalized Templates**: Generate prompts with role, task, constraints, output style, and personality
-- **User Accounts**: Save, organize, and share your favorite prompts
-- **Public Prompt Library**: Explore prompts shared by the community
-- **API Integration**: Programmatically generate prompts for your applications
+- **Advanced Templates**: Pre-filled specialized templates for common technical scenarios
+- **User Accounts**: Save, organize, edit, and share your favorite prompts
+- **Public Prompt Library**: Explore prompts shared by the community with search, filtering and pagination
+- **Tagging System**: Organize and discover prompts with a flexible tagging system
+- **Profile Management**: Update user profile and customize account settings
+- **Rate Limiting**: API rate limiting to prevent abuse
+- **Responsive Design**: Modern UI that works well on all devices
 
 ## 🚀 Getting Started
 
@@ -25,6 +29,8 @@ PromptCrafter is a web application that helps users create effective AI prompts 
 - Python 3.9+
 - pip (Python package installer)
 - Git
+- Redis (optional, for caching and rate limiting)
+- PostgreSQL (recommended for production) or SQLite
 
 ### Local Development Setup
 
@@ -54,12 +60,17 @@ PromptCrafter is a web application that helps users create effective AI prompts 
    # Edit .env with your configuration
    ```
 
-5. Run the development server:
+5. Initialize the database:
+   ```bash
+   flask db upgrade
+   ```
+
+6. Run the development server:
    ```bash
    flask run
    ```
 
-6. Open your browser and go to http://localhost:5000
+7. Open your browser and go to http://localhost:5000
 
 ### Docker Deployment
 
@@ -74,12 +85,22 @@ PromptCrafter is a web application that helps users create effective AI prompts 
 
 ```
 promptCrafter/
-├── app.py                 # Main application file
+├── app.py                 # Application factory
+├── config.py              # Configuration settings
+├── models.py              # Database models
 ├── utils.py               # Utility functions
 ├── requirements.txt       # Python dependencies
 ├── Dockerfile             # Docker configuration
 ├── docker-compose.yml     # Docker Compose services
 ├── gunicorn_config.py     # Gunicorn server configuration
+├── routes/                # Route blueprints
+│   ├── __init__.py
+│   ├── auth.py            # Authentication routes
+│   ├── main.py            # Main routes
+│   ├── prompts.py         # Prompt management routes
+│   └── api.py             # API endpoints
+├── migrations/            # Database migrations
+├── tests/                 # Unit tests
 ├── nginx/                 # Nginx configuration
 │   └── nginx.conf
 ├── static/                # Static assets
@@ -90,6 +111,9 @@ promptCrafter/
     ├── result.html
     ├── login.html
     ├── register.html
+    ├── profile.html
+    ├── edit_prompt.html
+    ├── advanced_templates.html
     └── ...
 ```
 
@@ -122,19 +146,53 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 }
 ```
 
+### Get Public Prompts
+
+**Endpoint**: `/api/prompts`
+
+**Method**: GET
+
+**Query Parameters**:
+- `search` (optional): Search string
+- `tag` (optional): Filter by tag
+- `sort` (optional): "newest" or "oldest"
+- `page` (optional): Page number (default: 1)
+- `per_page` (optional): Results per page (default: 10, max: 50)
+
+**Response**:
+```json
+{
+  "prompts": [...],
+  "page": 1,
+  "per_page": 10,
+  "total": 42,
+  "pages": 5
+}
+```
+
+## 🧪 Testing
+
+Run the test suite with:
+
+```bash
+python -m unittest discover -s tests
+```
+
 ## 🛠️ Tech Stack
 
-- **Backend**: Flask, SQLAlchemy, Flask-Login
+- **Backend**: Flask, SQLAlchemy, Flask-Login, Flask-WTF
 - **Database**: SQLite (development), PostgreSQL (production)
-- **Frontend**: HTML, CSS (TailwindCSS), JavaScript
+- **Security**: CSRF protection, rate limiting, secure cookies
+- **Caching**: Redis with Flask-Caching
+- **Email**: Flask-Mail for notifications
+- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
 - **Deployment**: Docker, Gunicorn, Nginx
-- **Caching**: Redis
 
 ## 📊 Roadmap
 
-- [ ] Advanced prompt templates for specific use cases
 - [ ] AI-assisted prompt improvement suggestions
-- [ ] Prompt ratings and reviews
+- [ ] Export prompts to various formats (PDF, Markdown)
+- [ ] Prompt collections/folders
 - [ ] OAuth login options (GitHub, Google)
 - [ ] Mobile app
 
