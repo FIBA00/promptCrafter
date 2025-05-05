@@ -1,7 +1,7 @@
 import os
 import logging
 from flask import Flask
-from extensions import db, migrate
+from extensions import db, migrate, login_manager
 from config import config
 from routes.prompts import prompts_bp
 from routes.main import main_bp
@@ -28,6 +28,13 @@ def create_app(config_name=None):
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
+    login_manager.init_app(app)
+    
+    # Set up user loader for Flask-Login
+    from models import User
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
     
     # Register blueprints
     app.register_blueprint(main_bp)
