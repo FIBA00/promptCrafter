@@ -6,6 +6,12 @@ from config import config
 from routes.prompts import prompts_bp
 from routes.main import main_bp
 from routes.api import api_bp
+from threading import Thread
+import waitress
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def create_app(config_name=None):
     """Application factory pattern for Flask."""
@@ -49,9 +55,39 @@ def create_app(config_name=None):
     
     return app
 
-# Create app instance for running directly
-app = create_app()
+def run_development_server():
+    """Run the development server"""
+    app = create_app('development')
+    port = app.config.get('PORT', 5002)
+    app.run(debug=app.config.get('DEBUG', True), port=port)
+
+def run_production_server():
+    """Run the production waitress server"""
+    app = create_app('production')
+    
+    # Get configuration from environment variables
+    port = app.config.get('PORT', 5002)
+    host = os.environ.get('WAITRESS_HOST', '0.0.0.0')
+    threads = int(os.environ.get('WAITRESS_THREADS', 4))
+    
+    # Print server information
+    print(f"Starting production server on {host}:{port} with {threads} threads")
+    
+    # Explicit production server configuration
+    waitress.serve(
+        app,
+        host=host, 
+        port=port,
+        threads=threads,
+        ident=None  # Disables server identification
+    )
 
 if __name__ == '__main__':
-    # Use port 5002 to avoid conflict with port 5000 that's already in use
-    app.run(debug=os.environ.get('FLASK_DEBUG', 'True').lower() == 'true', port=5002)
+    # Use the environment to determine which server to run
+    env = os.environ.get('FLASK_ENV', 'production')
+    
+    if env.lower() == 'development':
+        run_development_server()
+    else:
+        run_production_server()
+ 

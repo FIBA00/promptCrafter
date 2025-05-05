@@ -11,6 +11,21 @@ This guide explains how to package the PromptCrafter Flask application as a stan
 
 PromptCrafter uses a PyQt wrapper (`pyqt_runner.py`) to embed the Flask web application within a desktop window. PyInstaller is then used to package everything into a standalone executable.
 
+## Development vs Production Mode
+
+The application can run in two modes:
+
+1. **Development Mode** (default): Uses Flask's built-in development server
+2. **Production Mode**: Uses Waitress as a production-ready WSGI server
+
+To run in production mode, set the `FLASK_ENV` environment variable:
+
+```bash
+export FLASK_ENV=production
+```
+
+This setting will be respected both when running the app directly and through the PyQt wrapper.
+
 ## Building the Application
 
 ### Option 1: Using the Build Script
@@ -57,6 +72,12 @@ The PyInstaller configuration is defined in `promptcrafter.spec`. You can modify
 - Configure hidden imports
 - Change the executable name
 - Adjust other packaging parameters
+
+### Production Configuration
+
+For production deployments, you may want to adjust:
+- `config.py`: Update production settings like database URI and SECRET_KEY
+- `app.py`: Tune Waitress configuration parameters if needed
 
 ## Troubleshooting
 
