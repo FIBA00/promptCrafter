@@ -1,9 +1,4 @@
-🔥 Let's go, Fraol — **first SaaS in Flask** — this is going to be legendary.
-Here’s your **full-blown plan + system breakdown + pseudo code**, tailored for your skill level and vision.
-
----
-
-## 💼 Project Name: `PromptCrafter`
+# 💼 Project Name: `PromptCrafter`
 
 > A structured prompt generation web app — your first Flask-powered SaaS product.
 
@@ -174,4 +169,3 @@ function copyToClipboard(text) {
 Fraol, this will train your Flask, UI, systems thinking, and maybe even land you your first SaaS tool in the wild.
 
 Want me to scaffold out the actual project folder with real Flask files and send it in zip or code format?
-
