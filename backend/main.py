@@ -1,42 +1,20 @@
-from fastapi import FastAPI, status, Depends, HTTPException
-from schema.schemas import PromptSchema, PromptSchemaOutput
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 from utility.logger import get_logger
-from db.database import get_db, engine
-from models import models
+from routers import process_prompt
 
-models.Base.metadata.create_all(bind=engine)
 
 lg = get_logger(__file__)
-app = FastAPI()
+version = "0.1.0"
 
+app = FastAPI(
+    title="PromptCrafter Backend API",
+    description="API for processing and structuring prompts.",
+    version=version,
+)
 
-@app.get("/")
-def main():
-    return {"message": "Hello from backend!"}
-
-
-# route for recieving prompts
-@app.post("/main/get_started")
-def get_prompts(
-    db: Session = Depends(get_db), prompt: PromptSchema = None
-) -> PromptSchemaOutput:
-    # process the prompt here
-    if prompt:
-        lg.debug(prompt)
-
-    prompt = PromptSchema(**prompt.dict())
-    db.add(prompt)
-    db.commit()
-    db.refresh(prompt)
-
-    return PromptSchemaOutput(
-        structured_prompt="This is a structured prompt based on your input.",
-        natural_prompt="This is a natural language prompt based on your input.",
-    )
-
+app.include_router(process_prompt.router, prefix="/api/v1", tags=["process"])
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="debug")

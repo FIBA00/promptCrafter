@@ -38,6 +38,7 @@ NOTE: later use alembic for migrations.
     sqlalchemy.url = <your_database_url> may come from azure or aws rds or local psql
     # in alembic/env.py file
     from backend.db.database import Base  # import your Base
+    from core import models  # import your models to register them with Base
     target_metadata = Base.metadata  # set the target metadata
 
     ```
