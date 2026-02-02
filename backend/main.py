@@ -25,6 +25,11 @@ def get_prompts(
     if prompt:
         lg.debug(prompt)
 
+    prompt = PromptSchema(**prompt.dict())
+    db.add(prompt)
+    db.commit()
+    db.refresh(prompt)
+
     return PromptSchemaOutput(
         structured_prompt="This is a structured prompt based on your input.",
         natural_prompt="This is a natural language prompt based on your input.",

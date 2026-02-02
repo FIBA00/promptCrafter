@@ -57,3 +57,31 @@ NOTE: later use alembic for migrations.
 ```bash sudo -u postgres psql -d template1 -c "DROP DATABASE dbname;"``` : to drop a database
 
 ```bash sudo -u postgres psql -d template1 -c "CREATE DATABASE dbname;"``` : to create a database
+
+## Explanation of Changes Made to models.py
+
+### The Explanation
+
+1. __Foreign Key (`ForeignKey`):__ This is the database's version of the link. It is the actual column (like `author_id`) that stores the ID of the related row.
+    * *Without this:* The database has no idea that the string "user_123" in your `prompts` table refers to a row in the `users` table.
+    * *In your case:* You need `author_id` in the `Prompts` table, and both `author_id` and `original_prompt_id` in the `StructurePrompts` table.
+
+2. __Relationship (`relationship`):__ This is the Python/SQLAlchemy version of the link. It allows you to access the related object directly.
+    * *Without this:* You would have to take the `author_id` and write a manual query like `db.query(User).filter(User.id == prompt.author_id).first()`.
+    * *With this:* You can just type `prompt.author` and SQLAlchemy retrieves the user object for you.
+
+### What I Changed
+
+I updated your models.py to implement exactly what you described. Here is the breakdown:
+
+1. __Updated `Prompts`__:
+    * Added `author_id = Column(String, ForeignKey("users.user_id"))`. This is the physical link to the User table.
+    * Added `structured_version` relationship. This lets you access the structured prompt using `my_prompt.structured_version`.
+
+2. __Updated `User`__:b
+    * Added `structured_prompts` relationship. This lets you access all structured prompts created by a user using `my_user.structured_prompts`.
+
+3. __Updated `StructurePrompts`__:
+    * Added `author_id` (Foreign Key to User).
+    * Added `original_prompt_id` (Foreign Key to Prompts).
+    * Added relationships `author` and `original_prompt` so you can access the objects they point to.
