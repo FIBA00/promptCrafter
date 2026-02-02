@@ -20,8 +20,8 @@ C extensions
 *.so
 venv/
 # *.txt 
-
-
+*.log
+logs/
 # Distribution / packaging
 .Python
 build/

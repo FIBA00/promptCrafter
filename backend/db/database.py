@@ -1,17 +1,12 @@
-import os
-from python_dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from backend.models import models
 
-load_dotenv()
+from core.config import settings
 
-engine = create_engine(os.getenv("DATABASE_URL"))
 
+engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
 Base = declarative_base()
 
 
@@ -21,6 +16,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-models.Base.metadata.create_all(bind=engine)
