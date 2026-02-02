@@ -35,12 +35,14 @@ PromptCrafter is a web application that helps users create effective AI prompts 
 ### Local Development Setup
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/FIBA00/promptCrafter.git
    cd promptCrafter
    ```
 
 2. Create and activate a virtual environment:
+
    ```bash
    python -m venv venv
    # On Windows
@@ -50,36 +52,42 @@ PromptCrafter is a web application that helps users create effective AI prompts 
    ```
 
 3. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. Set up environment variables (copy from example):
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 5. Initialize the database:
+
    ```bash
    flask db upgrade
    ```
 
 6. Run the development server:
+
    ```bash
    flask run
    ```
 
-7. Open your browser and go to http://localhost:5000
+7. Open your browser and go to <http://localhost:5000>
 
 ### Docker Deployment
 
 1. Make sure Docker and Docker Compose are installed
 2. Run:
+
    ```bash
    docker-compose up -d
    ```
-3. Visit http://localhost to see the application
+
+3. Visit <http://localhost> to see the application
 
 ## 🏗️ Project Structure
 
@@ -128,6 +136,7 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 **Method**: POST
 
 **Request Body**:
+
 ```json
 {
   "role": "AI architect",
@@ -139,6 +148,7 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 ```
 
 **Response**:
+
 ```json
 {
   "structured_prompt": "...",
@@ -153,6 +163,7 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 **Method**: GET
 
 **Query Parameters**:
+
 - `search` (optional): Search string
 - `tag` (optional): Filter by tag
 - `sort` (optional): "newest" or "oldest"
@@ -160,6 +171,7 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 - `per_page` (optional): Results per page (default: 10, max: 50)
 
 **Response**:
+
 ```json
 {
   "prompts": [...],

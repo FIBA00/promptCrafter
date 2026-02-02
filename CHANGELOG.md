@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2023-11-01
 
 ### Added
+
 - Implemented advanced templates for specific use cases (code refactoring, API design, etc.)
 - Added tagging system for prompts with search and filtering capabilities
 - Added user profile management with account settings
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added proper API error handling
 
 ### Changed
+
 - Refactored application to use Flask Blueprint pattern
 - Improved project structure with separate directories for routes, models, etc.
 - Implemented factory pattern for application creation
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved database models with proper indexing for better performance
 
 ### Fixed
+
 - Fixed empty advanced_templates.html file
 - Fixed missing validation in prompt save function
 - Fixed security issues with hardcoded secret key in development mode
@@ -40,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2023-10-01
 
 ### Added
+
 - Initial release of PromptCrafter
 - Basic prompt generation with structured and natural language formats
 - User registration and authentication system
@@ -49,19 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-
 ### Fixed
-
 
 ### Security
 
-
-## [0.0.1] 
+## [0.0.1]
 
 - Initial release of Prompt crafter System
 
-
 <!-- Versions -->
-[unreleased]: https://github.com/FIBA00/promptCrafteraider_V2/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/FIBA00/promptCrafter/compare/v0.0.1...v1.0.0
 [0.0.1]: https://github.com/FIBA00/promptCrafter/releases/tag/v0.0.1
