@@ -26,12 +26,24 @@ def create_new_prompt(
     # TODO: step 1 : check if the current session has user id with the request
 
     # step 2 : if there is no id and user has sent the prompt create user id
-    new_prompt = prompt_service.save_prompt(session=db, prompt_data=prompt_data)
-    # step 3 : update the user, prompt, structured_prompt tables with new information
-    st_prompt = st_prompt_service.create_structured_prompt(
-        session=db, prompt_data=new_prompt
-    )
-    return st_prompt
+    try:
+        new_prompt = prompt_service.save_prompt(session=db, prompt_data=prompt_data)
+
+        # step 3 : update the user, prompt, structured_prompt tables with new information
+        st_prompt = st_prompt_service.create_structured_prompt(
+            session=db, prompt_data=new_prompt
+        )
+        return st_prompt
+
+    except Exception as e:
+        # The service layer logged the specific error.
+        # Here at the API layer, we decide what to tell the user.
+        # We don't want to show them the raw SQL error (security risk), just "Something went wrong"
+        lg.error(f"Failed to process prompt: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while processing your prompt. Please try again.",
+        )
 
 
 # NOTE: so instead of separately returning the prompt and structured prompt for this routes

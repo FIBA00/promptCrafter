@@ -1,5 +1,6 @@
 import uuid
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from core.models import Prompts
 from schema.schemas import PromptSchema
 from utility.logger import get_logger
@@ -20,23 +21,35 @@ class PromptService:
         prompt_data: PromptSchema,
         author_id: str = None,
     ):
-        prompt_data_dict = prompt_data.model_dump()
+        try:
+            prompt_data_dict = prompt_data.model_dump()
 
-        # We must use the SQLAlchemy Model (Prompts), not the Pydantic Schema
-        if not prompt_data_dict.get("prompt_id"):
-            prompt_data_dict["prompt_id"] = str(uuid.uuid4())
+            # We must use the SQLAlchemy Model (Prompts), not the Pydantic Schema
+            if not prompt_data_dict.get("prompt_id"):
+                prompt_data_dict["prompt_id"] = str(uuid.uuid4())
 
-        new_prompt = Prompts(**prompt_data_dict)
+            new_prompt = Prompts(**prompt_data_dict)
 
-        # new_prompt.author_id = author_id # Uncomment when author logic is ready
-        lg.debug(f"Saving prompt: {new_prompt.prompt_id}")
+            # new_prompt.author_id = author_id # Uncomment when author logic is ready
+            lg.debug(f"Saving prompt: {new_prompt.prompt_id}")
 
-        session.add(new_prompt)
-        session.commit()
-        session.refresh(new_prompt)
+            session.add(new_prompt)
+            session.commit()
+            session.refresh(new_prompt)
 
-        # Return the Pydantic schema so the rest of the app can use it easily
-        return PromptSchema.model_validate(new_prompt)
+            # Return the Pydantic schema so the rest of the app can use it easily
+            return PromptSchema.model_validate(new_prompt)
+
+        except SQLAlchemyError as e:
+            # This catches ANY database error (connection lost, constraint violation, etc.)
+            session.rollback()  # CRITICAL: Reset the session so it's clean for the next request
+            lg.error(f"Database Error saving prompt: {str(e)}")
+            raise e  # Re-raise it so the router knows something went wrong
+
+        except Exception as e:
+            # This catches any other unexpected Python error (like a bug in our code)
+            lg.error(f"Unexpected Error in save_prompt: {str(e)}")
+            raise e
 
     def update_prompt(self, prompt_id: str, session: Session):
         lg.debug(f"Updating  prompt: {prompt_id}")
