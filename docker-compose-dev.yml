@@ -1,0 +1,38 @@
+version: "3.8"
+services:
+    api:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        depends_on:
+            - postgres
+        ports:
+            - "8000:8000"
+        # Sync backend folder specifically
+        volumes:
+            - ./backend:/app
+        # Run with reload for development
+        command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+        env_file:
+            - backend/.env
+        environment:
+            - DATABASE_HOSTNAME=postgres
+            - DATABASE_PORT=5432
+            # These should probably match what is in your .env or backend/core/config.py
+            - DATABASE_NAME=fastapi_db
+            - DATABASE_USERNAME=postgres
+            - DATABASE_PASSWORD=password123
+
+    postgres:
+        image: postgres:15
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=password123
+            - POSTGRES_DB=fastapi_db
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+
+volumes:
+    postgres_data:

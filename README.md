@@ -5,10 +5,11 @@
 </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python: 3.9+](https://img.shields.io/badge/Python-3.9+-green.svg)](https://www.python.org/)
-[![Flask: 2.3.3](https://img.shields.io/badge/Flask-2.3.3-red.svg)](https://flask.palletsprojects.com/)
+[![Python: 3.12+](https://img.shields.io/badge/Python-3.12+-green.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB.svg)](https://react.dev/)
 
-PromptCrafter is a web application that helps users create effective AI prompts with structured templates. It's designed for developers, content creators, and AI enthusiasts who want to get better results from their AI interactions.
+PromptCrafter is a web application that helps users create effective AI prompts with structured templates. It uses a modern stack with FastAPI backend and React frontend.
 
 ## 🎯 Features
 
@@ -26,11 +27,11 @@ PromptCrafter is a web application that helps users create effective AI prompts 
 
 ### Prerequisites
 
-- Python 3.9+
-- pip (Python package installer)
+- Python 3.12+
+- uv (Modern Python package manager)
+- Node.js & npm (for Frontend)
 - Git
-- Redis (optional, for caching and rate limiting)
-- PostgreSQL (recommended for production) or SQLite
+- PostgreSQL or SQLite
 
 ### Local Development Setup
 
@@ -41,42 +42,29 @@ PromptCrafter is a web application that helps users create effective AI prompts 
    cd promptCrafter
    ```
 
-2. Create and activate a virtual environment:
+2. Backend Setup:
 
    ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
-   # On macOS/Linux
-   source venv/bin/activate
+   cd backend
+   
+   # Install dependencies with uv
+   uv sync
+
+   # Set up environment variables
+   # Ensure you have a .env file based on your configuration
+   
+   # Run migrations
+   uv run alembic upgrade head
+
+   # Run the development server
+   uv run fastapi dev main.py
    ```
 
-3. Install dependencies:
+3. Frontend Setup:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+   *(Instructions for React frontend setup)*
 
-4. Set up environment variables (copy from example):
-
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-5. Initialize the database:
-
-   ```bash
-   flask db upgrade
-   ```
-
-6. Run the development server:
-
-   ```bash
-   flask run
-   ```
-
-7. Open your browser and go to <http://localhost:5000>
+4. Open your browser and go to <http://localhost:8000/docs> for the API documentation.
 
 ### Docker Deployment
 
@@ -93,45 +81,32 @@ PromptCrafter is a web application that helps users create effective AI prompts 
 
 ```
 promptCrafter/
-├── app.py                 # Application factory
-├── config.py              # Configuration settings
-├── models.py              # Database models
-├── utils.py               # Utility functions
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Docker configuration
-├── docker-compose.yml     # Docker Compose services
-├── gunicorn_config.py     # Gunicorn server configuration
-├── routes/                # Route blueprints
-│   ├── __init__.py
-│   ├── auth.py            # Authentication routes
-│   ├── main.py            # Main routes
-│   ├── prompts.py         # Prompt management routes
-│   └── api.py             # API endpoints
-├── migrations/            # Database migrations
-├── tests/                 # Unit tests
-├── nginx/                 # Nginx configuration
-│   └── nginx.conf
-├── static/                # Static assets
-│   ├── css/
-│   └── js/
-└── templates/             # HTML templates
-    ├── index.html
-    ├── result.html
-    ├── login.html
-    ├── register.html
-    ├── profile.html
-    ├── edit_prompt.html
-    ├── advanced_templates.html
-    └── ...
+├── backend/               # FastAPI Backend
+│   ├── core/              # Core configuration and models
+│   ├── db/                # Database connection
+│   ├── migrations/        # Alembic migrations
+│   ├── routers/           # API routes/endpoints
+│   ├── schema/            # Pydantic schemas
+│   ├── services/          # Business logic
+│   ├── utility/           # Utility functions
+│   ├── main.py            # Application entry point
+│   ├── pyproject.toml     # Python dependencies (uv)
+│   └── alembic.ini        # Alembic configuration
+├── frontend/              # React Frontend (planned/in-progress)
+├── __docs__/              # Documentation
+└── resources/             # Project resources
 ```
 
 ## 🔌 API Documentation
 
-PromptCrafter provides a RESTful API that allows you to generate prompts programmatically.
+PromptCrafter provides a RESTful API. Documentation is automatically generated by FastAPI.
 
-### Generate Prompt
+- **Swagger UI**: `/docs`
+- **ReDoc**: `/redoc`
 
-**Endpoint**: `/api/generate`
+### Example Endpoint: Process Prompt
+
+**Endpoint**: `/api/v1/process_prompt/`
 
 **Method**: POST
 
@@ -141,44 +116,10 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 {
   "role": "AI architect",
   "task": "design a prediction engine",
-  "constraints": "Must support multithreading",
-  "output": "step-by-step",
-  "personality": "nerdy but strategic"
-}
-```
-
-**Response**:
-
-```json
-{
-  "structured_prompt": "...",
-  "natural_prompt": "..."
-}
-```
-
-### Get Public Prompts
-
-**Endpoint**: `/api/prompts`
-
-**Method**: GET
-
-**Query Parameters**:
-
-- `search` (optional): Search string
-- `tag` (optional): Filter by tag
-- `sort` (optional): "newest" or "oldest"
-- `page` (optional): Page number (default: 1)
-- `per_page` (optional): Results per page (default: 10, max: 50)
-
-**Response**:
-
-```json
-{
-  "prompts": [...],
-  "page": 1,
-  "per_page": 10,
-  "total": 42,
-  "pages": 5
+  "context": "Startups",
+  "persona": "nerdy but strategic",
+  "format": "step-by-step",
+  "tone": "professional"
 }
 ```
 
@@ -187,18 +128,17 @@ PromptCrafter provides a RESTful API that allows you to generate prompts program
 Run the test suite with:
 
 ```bash
-python -m unittest discover -s tests
+cd backend
+uv run pytest
 ```
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Flask, SQLAlchemy, Flask-Login, Flask-WTF
-- **Database**: SQLite (development), PostgreSQL (production)
-- **Security**: CSRF protection, rate limiting, secure cookies
-- **Caching**: Redis with Flask-Caching
-- **Email**: Flask-Mail for notifications
-- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
-- **Deployment**: Docker, Gunicorn, Nginx
+- **Backend**: FastAPI, SQLAlchemy, Pydantic, Alembic, Uvicorn
+- **Frontend**: React
+- **Database**: PostgreSQL (Production), SQLite (Dev)
+- **Package Manager**: uv
+- **Deployment**: Docker
 
 ## 📊 Roadmap
 
