@@ -8,7 +8,7 @@ def test_create_prompt_guest_minimal(client):
     """
     payload = {"task": "Help me write a Python script"}
 
-    response = client.post("/api/v1/process_prompt/", json=payload)
+    response = client.post("/api/v1/pcrafter/process", json=payload)
 
     # 1. Check HTTP Status
     assert response.status_code == status.HTTP_200_OK
@@ -37,7 +37,7 @@ def test_create_prompt_guest_full_fields(client):
         "personality": "Elon Musk like",
     }
 
-    response = client.post("/api/v1/process_prompt/", json=payload)
+    response = client.post("/api/v1/pcrafter/process", json=payload)
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -51,7 +51,7 @@ def test_create_prompt_validation_error(client):
     """
     payload = {"title": "Missing Task"}
 
-    response = client.post("/api/v1/process_prompt/", json=payload)
+    response = client.post("/api/v1/pcrafter/process", json=payload)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = response.json()["detail"]
@@ -69,6 +69,6 @@ def test_create_prompt_invalid_types(client):
         "title": 123456,  # Should be a string
     }
 
-    response = client.post("/api/v1/process_prompt/", json=payload)
+    response = client.post("/api/v1/pcrafter/process", json=payload)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

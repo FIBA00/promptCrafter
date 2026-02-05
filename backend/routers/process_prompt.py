@@ -1,7 +1,8 @@
 # Procssing prompt
 
-import uuid
-from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from schema.schemas import PromptSchema, PromptSchemaOutput, UserPrompts
 from sqlalchemy.orm import Session
 from utility.logger import get_logger
@@ -9,14 +10,23 @@ from db.database import get_db
 from services.prompt_service import PromptService
 from services.restructure_prompt_service import RestructuredPromptService
 
-router = APIRouter(prefix="/process_prompt", tags=["process"])
+router = APIRouter(prefix="/pcrafter", tags=["process"])
+router.mount("/static", StaticFiles(directory="static"), name="static")
 prompt_service = PromptService()
 st_prompt_service = RestructuredPromptService()
 lg = get_logger(__file__)
 
 
+# minimal ui display for main page, where user can just type the prompt and get the structured prompt, later on we can connect frontend
+@router.get("/", response_class=FileResponse)
+def read_root():
+    return FileResponse("static/index.html", media_type="text/html")
+
+
 # route for recieving prompts
-@router.post("/", status_code=status.HTTP_200_OK, response_model=PromptSchemaOutput)
+@router.post(
+    "/process", status_code=status.HTTP_200_OK, response_model=PromptSchemaOutput
+)
 def create_new_prompt(
     db: Session = Depends(get_db), prompt_data: PromptSchema = None
 ) -> PromptSchemaOutput:
