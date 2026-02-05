@@ -23,6 +23,9 @@ venv/
 *.log
 logs/
 Note_deploy_ubuntu.md
+db_debug.md
+TODO.md
+
 # Distribution / packaging
 .Python
 build/
