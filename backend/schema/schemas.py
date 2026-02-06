@@ -31,4 +31,7 @@ class PromptSchemaOutput(BaseModel):
 
 
 class UserPrompts(PromptSchema):
-    st_prompts: List[PromptSchemaOutput]
+    st_prompts: List[PromptSchema]
+
+    class Config:
+        from_attributes = True
