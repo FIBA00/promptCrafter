@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, status, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from schema.schemas import PromptSchema, PromptSchemaOutput, UserPrompts
+from schema.schemas import PromptSchema, PromptSchemaOutput
 from sqlalchemy.orm import Session
 from utility.logger import get_logger
 from db.database import get_db

@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, TIMESTAMP
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import DateTime
+from sqlalchemy.sql.expression import text
 from sqlalchemy.sql import func
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -47,9 +48,16 @@ class Prompts(Base):
 
 class User(Base):
     __tablename__ = "users"
+
     user_id = Column(String, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
+    password = Column(String, nullable=False)
     email = Column(String, unique=True, index=True)
+    phone_number = Column(String, nullable=True)
+
+    created_at = Column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+    )
 
     # Relationships
     prompts = relationship("Prompts", back_populates="author")

@@ -5,6 +5,9 @@ const resultMeta = document.getElementById("resultMeta");
 const scrollToForm = document.querySelector("[data-scroll-to-form]");
 const scrollToInfo = document.querySelector("[data-scroll-to-info]");
 const presetToolbars = document.querySelectorAll(".preset-toolbar");
+const copyPromptBtn = document.querySelector("btn-copy-prompt");
+const loginBtn = document.querySelector("login-btn");
+
 
 const BASE_API = "api/v1/pcrafter";
 
@@ -15,6 +18,12 @@ scrollToForm?.addEventListener("click", () => {
 scrollToInfo?.addEventListener("click", () => {
     document.getElementById("infoSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
+// render form for user input
+
+// loginBtn.addEventListener("click", () => {
+//     docuement
+// })
 
 presetToolbars.forEach((toolbar) => {
     toolbar.addEventListener("click", (event) => {

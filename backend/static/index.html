@@ -25,6 +25,7 @@
             <div class="nav-actions">
                 <button type="button" class="ghost" data-scroll-to-info>Flow map</button>
                 <button type="button" class="primary" data-scroll-to-form>Create prompt</button>
+                <button id="login-btn" type="button" class="primary">Login</button>
             </div>
         </nav>
         <header class="hero">
@@ -39,10 +40,6 @@
                     <span>Creative workflows</span>
                     <span>Prompt versioning</span>
                     <span>Team-ready</span>
-                </div>
-                <div class="hero-actions">
-                    <button type="button" class="primary" data-scroll-to-form>Start crafting</button>
-                    <button type="button" class="ghost" data-scroll-to-info>See flow</button>
                 </div>
             </div>
             <div class="hero-card">
@@ -60,9 +57,11 @@
                     </div>
                 </div>
             </div>
+
         </header>
 
         <main>
+
             <section class="panel form-panel" id="formSection">
                 <div class="panel-heading">
                     <h2>New prompt</h2>
@@ -126,6 +125,8 @@
                     <p class="empty-state">No prompt yet. Fill the form to see the structured content.</p>
                 </div>
                 <div class="result-meta" id="resultMeta"></div>
+                <button id="btn-copy-prompt" type="button" class="primary">Copy Prompt</button>
+
             </section>
 
             <section class="panel info-panel" id="infoSection">

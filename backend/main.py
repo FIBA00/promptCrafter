@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from utility.logger import get_logger
-from routers import process_prompt
+from routers import process_prompt, user
 import traceback
 
 
@@ -55,4 +55,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(process_prompt.router, prefix="/api/v1", tags=["process"])
-app.mount("/", StaticFiles(directory="static", html=True), name="frontend")
+app.include_router(user.router, prefix="/api/v1", tags=["process"])
+
+app.mount("/home", StaticFiles(directory="static", html=True), name="frontend")

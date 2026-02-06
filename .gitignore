@@ -22,10 +22,11 @@ venv/
 # *.txt 
 *.log
 logs/
+
 Note_deploy_ubuntu.md
 db_debug.md
 TODO.md
-
+setup.sh
 # Distribution / packaging
 .Python
 build/
