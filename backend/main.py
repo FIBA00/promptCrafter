@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from utility.logger import get_logger
 from routers import process_prompt, user
 import traceback
+from prometheus_fastapi_instrumentator import Instrumentator
 
 
 lg = get_logger(__file__)
@@ -20,6 +21,8 @@ app = FastAPI(
     description="API for processing and structuring prompts.",
     version=version,
 )
+
+Instrumentator().instrument(app).expose(app)
 
 # --- Global Exception Handling ---
 
@@ -57,4 +60,4 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(process_prompt.router, prefix="/api/v1", tags=["process"])
 app.include_router(user.router, prefix="/api/v1", tags=["process"])
 
-app.mount("/home", StaticFiles(directory="static", html=True), name="frontend")
+app.mount("/home", StaticFiles(directory="backend/static", html=True), name="frontend")
