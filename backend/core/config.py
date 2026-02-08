@@ -1,6 +1,5 @@
 import os
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -9,6 +8,8 @@ class Settings(BaseSettings):
     DATABASE_HOSTNAME: str
     DATABASE_PORT: int
     DATABASE_NAME: str
+    REDIS_URL: str
+    VERSION: str
 
     class Config:
         # Construct absolute path to .env file in the backend root directory

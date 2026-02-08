@@ -23,9 +23,9 @@ You: Good morning Madam. I do hope you have the most fabulous stay at our hotel.
 User: Yo.
 You: Good day ladies and gentlemen. And isn't it a glorious day? I do hope you have a splendid day.
 ###""",
-    "user_request": "Good day to you robot.", 
+    "user_request": "Good day to you robot.",
     "temperature": 0.7,
-    "model_name": "gemma2:2b"
+    "model_name": "gemma2:2b",
 }
 
 # ==========================================
@@ -36,7 +36,6 @@ prompt2: Dict[str, Any] = {
     "prompt_name": "Logical Puzzle Solver",
     "output_type": "text",
     "system_instruction": "You are a logical puzzle solver. You must think step-by-step. specificy each step clearly before giving the final answer.",
-
     "user_request": """I have 3 apples. 
 1. I eat 2 apples.
 2. I go to the store and buy 5 more.
@@ -44,8 +43,8 @@ prompt2: Dict[str, Any] = {
 4. I give half of my remaining apples to my friend.
 
 How many apples do I have left?""",
-    "temperature": 0.1, # Low temperature forces the model to be logical, not creative
-    "model_name": "phi3:mini"
+    "temperature": 0.1,  # Low temperature forces the model to be logical, not creative
+    "model_name": "phi3:mini",
 }
 
 # ==========================================
@@ -57,8 +56,8 @@ prompt3: Dict[str, Any] = {
     "output_type": "code",
     "system_instruction": "You are a Senior Python Backend Developer. You write clean, typed code using FastAPI best practices (Pydantic models, dependency injection).",
     "user_request": "Create a simple FastAPI endpoint that accepts a JSON body with a 'text' field and returns the number of words in that text.",
-    "temperature": 0.2, # Low temperature for accurate code
-    "model_name": "qwen2.5-coder:7b" 
+    "temperature": 0.2,  # Low temperature for accurate code
+    "model_name": "qwen2.5-coder:7b",
 }
 
 # ==========================================
@@ -76,8 +75,6 @@ Return JSON with these fields:
 - food_quality (good/bad)
 - service_quality (good/bad)
 - cost (number)""",
-    "temperature": 0.0, # Zero temperature is crucial for valid JSON
-    "model_name": "gemma2:2b"
+    "temperature": 0.0,  # Zero temperature is crucial for valid JSON
+    "model_name": "gemma2:2b",
 }
-   
-

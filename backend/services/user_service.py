@@ -1,5 +1,5 @@
 import uuid
-from fastapi import status, HTTPException, Depends, APIRouter
+from fastapi import status, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import EmailStr
