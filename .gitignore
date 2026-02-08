@@ -21,7 +21,9 @@ C extensions
 venv/
 # *.txt 
 *.log
+*.md
 logs/
+Note_setup_docker_monitor.md
 Note_docker_setup.md
 Note_setup_monitor.md
 Note_deploy_ubuntu.md

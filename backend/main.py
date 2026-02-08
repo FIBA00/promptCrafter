@@ -22,8 +22,6 @@ app = FastAPI(
     version=version,
 )
 
-Instrumentator().instrument(app).expose(app)
-
 # --- Global Exception Handling ---
 
 
@@ -55,6 +53,13 @@ async def global_exception_handler(request: Request, exc: Exception):
             # "traceback": error_details # Uncomment if you want full stack trace in response
         },
     )
+
+
+def metrics_app():
+    """Creates a separate FastAPI app for the /metrics endpoint."""
+    app = FastAPI()
+    Instrumentator().expose(app)
+    return app
 
 
 app.include_router(process_prompt.router, prefix="/api/v1", tags=["process"])
