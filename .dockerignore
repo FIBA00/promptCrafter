@@ -1,0 +1,32 @@
+# Ignore git directory
+
+.git/
+.gitignore
+
+# Ignore docker files
+
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Ignore python cache
+
+__pycache__/
+*.py[cod]
+*.so
+
+# Ignore virtual environments
+
+env/
+venv/
+.venv/
+
+# Ignore IDE files
+
+.vscode/
+.idea/
+
+# Ignore documentation
+
+__docs__/
+*.md

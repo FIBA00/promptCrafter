@@ -1,18 +1,31 @@
 # Procssing prompt
-
-import uuid
-from fastapi import APIRouter, status, Depends, HTTPException
-from schema.schemas import PromptSchema, PromptSchemaOutput, UserPrompts
+from typing import List
+from fastapi import APIRouter, status, Depends
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from schema.schemas import PromptSchema, PromptSchemaOutput
 from sqlalchemy.orm import Session
 from utility.logger import get_logger
 from db.database import get_db
 from services.prompt_service import PromptService
 from services.restructure_prompt_service import RestructuredPromptService
 
-router = APIRouter(prefix="/process_prompt", tags=["process"])
+router = APIRouter(prefix="/pcrafter", tags=["process"])
+# router.mount("/static", StaticFiles(directory="static"), name="static")
 prompt_service = PromptService()
 st_prompt_service = RestructuredPromptService()
 lg = get_logger(__file__)
+
+# Note: We rely on the global exception handler in main.py to catch and log any DB errors
+# This keeps our router code clean and the logging consistent.
+
+
+# minimal ui display for main page,
+# where user can just type the prompt and get the structured prompt,
+# later on we can connect frontend
+@router.get("/home", response_class=FileResponse)
+def read_root():
+    return FileResponse("static/index.html", media_type="text/html")
 
 
 # route for recieving prompts
@@ -22,28 +35,15 @@ def create_new_prompt(
 ) -> PromptSchemaOutput:
     # process the prompt here, and create dependency current_user, to keep track of users.
     # user = get_current_user()
-
     # TODO: step 1 : check if the current session has user id with the request
-
     # step 2 : if there is no id and user has sent the prompt create user id
-    try:
-        new_prompt = prompt_service.save_prompt(session=db, prompt_data=prompt_data)
+    # step 3 : update the user, prompt, structured_prompt tables with new information
 
-        # step 3 : update the user, prompt, structured_prompt tables with new information
-        st_prompt = st_prompt_service.create_structured_prompt(
-            session=db, prompt_data=new_prompt
-        )
-        return st_prompt
-
-    except Exception as e:
-        # The service layer logged the specific error.
-        # Here at the API layer, we decide what to tell the user.
-        # We don't want to show them the raw SQL error (security risk), just "Something went wrong"
-        lg.error(f"Failed to process prompt: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your prompt. Please try again.",
-        )
+    new_prompt = prompt_service.save_prompt(db=db, prompt_data=prompt_data)
+    st_prompt = st_prompt_service.create_structured_prompt(
+        session=db, prompt_data=new_prompt
+    )
+    return st_prompt
 
 
 # NOTE: so instead of separately returning the prompt and structured prompt for this routes
@@ -51,22 +51,36 @@ def create_new_prompt(
 # since author_id is tied to the restructured prompt and non structured prompt
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=UserPrompts)
-def get_all_prompt(db: Session = Depends(get_db)) -> UserPrompts:
+# If user is implemented the uncomment the below path operator
+@router.get("/", status_code=status.HTTP_200_OK, response_model=List[PromptSchema])
+# @router.get("/", status_code=status.HTTP_200_OK)
+def get_all_previous_prompts(db: Session = Depends(get_db)):
     # get historical prompts
     # TODO: this requeires user id  dependency to retrieve the desired prompt
-    # prompt_service.get_all_prompt(session=db)
+    # later implement user based retreival , something prompts for the current user onl.
+    all_previous_prompts = prompt_service.get_all_prompt(db=db)
+    return all_previous_prompts
+
+
+@router.get("/{prompt_id}", status_code=status.HTTP_200_OK, response_model=PromptSchema)
+def get_all_previous_prompt_by_id(prompt_id: str, db: Session = Depends(get_db)):
+    # get historical prompts
+    # TODO: this requeires user id  dependency to retrieve the desired prompt
+    # later implement user based retreival , something prompts for the current user onl.
+    all_previous_prompts = prompt_service.get_all_prompt_by_id(
+        prompt_id=prompt_id, db=db
+    )
+    return all_previous_prompts
+
+
+@router.delete("/{prompt_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_prompt(prompt_id: str, db: Session = Depends(get_db)):
+    # NOTE: this requires user id to operate
+    prompt_service.delete_prompt(prompt_id=prompt_id, db=db)
     pass
 
 
-# we can use query param to get the recent prompts or any parameter
-@router.get("/")
-def get_one_prompt(db: Session = Depends(get_db)):
-    # get one historical prompts
-    # st_prompt_service.get_one_structured_prompt_by_user_id(id=user_id, session=db, prompt_id=prompt_id)
-    pass
-
-
-@router.delete("/{prompt_id}")
-def delete_one_prompt():
+@router.post("/{prompt_id}", status_code=status.HTTP_200_OK)
+def update_prompt(prompt_id: str, db: Session = Depends(get_db)):
+    # NOTE: this also requires user id to operate
     pass

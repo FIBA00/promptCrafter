@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Crafter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+    <div class="page-shell">
+        <nav class="top-nav">
+            <div class="brand">
+                <span class="brand__dot"></span>
+                <span>PromptCrafter</span>
+            </div>
+            <div class="nav-actions">
+                <button type="button" class="ghost" data-scroll-to-info>Flow map</button>
+                <button type="button" class="primary" data-scroll-to-form>Create prompt</button>
+                <button id="login-btn" type="button" class="primary">Login</button>
+            </div>
+        </nav>
+        <header class="hero">
+            <div>
+                <p class="eyebrow">PromptCrafter</p>
+                <h1>Turn messy ideas into structured prompts instantly.</h1>
+                <p class="lede">
+                    Drop the noise. Provide a task. PromptCrafter pairs your request with a reusable template so the
+                    AI always understands you.
+                </p>
+                <div class="hero-badges">
+                    <span>Creative workflows</span>
+                    <span>Prompt versioning</span>
+                    <span>Team-ready</span>
+                </div>
+            </div>
+            <div class="hero-card">
+                <p class="hero-card__label">Live preview</p>
+                <p class="hero-card__body">Structured prompt appears here once you submit a task.</p>
+                <div class="hero-card__stat">Fast, reusable templates</div>
+                <div class="hero-card__list">
+                    <div>
+                        <h4>+48%</h4>
+                        <p>Clarity boost</p>
+                    </div>
+                    <div>
+                        <h4>2.1x</h4>
+                        <p>Faster drafting</p>
+                    </div>
+                </div>
+            </div>
+
+        </header>
+
+        <main>
+
+            <section class="panel form-panel" id="formSection">
+                <div class="panel-heading">
+                    <h2>New prompt</h2>
+                    <p>Only the task is required. Everything else is optional context.</p>
+                </div>
+                <form id="promptForm" autocomplete="off">
+                    <div class="field-grid">
+                        <label>
+                            Title
+                            <input name="title" placeholder="What is this for?" />
+                        </label>
+                        <label>
+                            Role
+                            <input name="role" placeholder="Role you want the AI to play" />
+                        </label>
+                    </div>
+                    <label class="full">
+                        Task (Required)
+                        <textarea name="task" rows="4" placeholder="Explain what you want the AI to do"
+                            required></textarea>
+                    </label>
+                    <label>
+                        Constraints
+                        <input name="constraints" placeholder="Do not mention XYZ" />
+                    </label>
+                    <label>
+                        Output style
+                        <div class="preset-toolbar" data-field="output">
+                            <button type="button" class="preset">Step-by-step</button>
+                            <button type="button" class="preset">Code-focused</button>
+                            <button type="button" class="preset">Advice</button>
+                        </div>
+                        <input name="output" placeholder="e.g. Tweet, article, script" />
+                    </label>
+                    <label>
+                        Personality / tone
+                        <div class="preset-toolbar" data-field="personality">
+                            <button type="button" class="preset">Helpful</button>
+                            <button type="button" class="preset">Witty</button>
+                            <button type="button" class="preset">Pro</button>
+                        </div>
+                        <input name="personality" placeholder="Helpful, witty, concise..." />
+                    </label>
+                    <label>
+                        Tags (comma separated)
+                        <input name="tags" placeholder="marketing, product, ai" />
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="primary">Process prompt</button>
+                        <p class="hint">We save the prompt so you can iterate later.</p>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel result-panel">
+                <div class="panel-heading">
+                    <h2>Structured output</h2>
+                    <p>The AI response is rendered below. It mirrors what your backend returns.</p>
+                </div>
+                <div id="resultDisplay" class="result-display">
+                    <p class="empty-state">No prompt yet. Fill the form to see the structured content.</p>
+                </div>
+                <div class="result-meta" id="resultMeta"></div>
+                <button id="btn-copy-prompt" type="button" class="primary">Copy Prompt</button>
+
+            </section>
+
+            <section class="panel info-panel" id="infoSection">
+                <div>
+                    <h3>How it flows</h3>
+                    <p>A guest request becomes a persisted prompt, a structured schema, and eventually a reusable
+                        template.</p>
+                </div>
+                <div class="info-grid">
+                    <article>
+                        <h4>01. Receive</h4>
+                        <p>The backend accepts your task and optional context, validates it, and saves the prompt.</p>
+                    </article>
+                    <article>
+                        <h4>02. Structure</h4>
+                        <p>The service stitches together role, task, constraints, and tone as a consistent template.</p>
+                    </article>
+                    <article>
+                        <h4>03. Respond</h4>
+                        <p>Structured AND natural language versions are returned so the frontend can display both.</p>
+                    </article>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="index.js"></script>
+</body>
+
+</html>

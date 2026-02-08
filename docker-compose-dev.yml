@@ -1,11 +1,11 @@
-version: "3.8"
 services:
     api:
         build:
             context: .
             dockerfile: Dockerfile
         depends_on:
-            - postgres
+            postgres:
+                condition: service_healthy
         ports:
             - "8000:8000"
         # Sync backend folder specifically
@@ -16,23 +16,35 @@ services:
         env_file:
             - backend/.env
         environment:
+            - DATABASE_USERNAME=fraold
+            - DATABASE_PASSWORD=1234fraol
             - DATABASE_HOSTNAME=postgres
             - DATABASE_PORT=5432
-            # These should probably match what is in your .env or backend/core/config.py
-            - DATABASE_NAME=fastapi_db
-            - DATABASE_USERNAME=postgres
-            - DATABASE_PASSWORD=password123
+            - DATABASE_NAME=promptcrafter_db_local
+        networks:
+            - app_network
 
     postgres:
         image: postgres:15
         environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=password123
-            - POSTGRES_DB=fastapi_db
+            - POSTGRES_USER=fraold
+            - POSTGRES_PASSWORD=1234fraol
+            - POSTGRES_DB=promptcrafter_db_local
         volumes:
             - postgres_data:/var/lib/postgresql/data
         ports:
             - "5432:5432"
+        networks:
+            - app_network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U fraold -d promptcrafter_db_local"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
 
 volumes:
     postgres_data:
+
+networks:
+    app_network:
+        driver: bridge

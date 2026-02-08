@@ -3,15 +3,18 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import app
 from db.database import get_db, Base
 from core.config import settings
 
 # 1. Setup Test Database URL
 # We replace the DB name in the connection string to point to our test DB
-TEST_DATABASE_URL = settings.DATABASE_URL.replace(
-    "promptcrafter_db", "promptcrafter_test_db"
-)
+TEST_DATABASE_URL = f"postgresql://{settings.DATABASE_USERNAME}:{settings.DATABASE_PASSWORD}@{settings.DATABASE_HOSTNAME}:{settings.DATABASE_PORT}/promptcrafter_test_db"
 
 # 2. Create Test Engine
 engine = create_engine(TEST_DATABASE_URL)

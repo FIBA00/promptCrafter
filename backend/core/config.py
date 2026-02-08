@@ -1,18 +1,20 @@
+import os
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-
-    @field_validator("DATABASE_URL")
-    def validate_database_url(cls, v):
-        if not v.startswith("postgresql://") and not v.startswith("sqlite:///"):
-            raise ValueError("DATABASE_URL must start with postgresql:// or sqlite:///")
-        return v
+    DATABASE_USERNAME: str
+    DATABASE_PASSWORD: str
+    DATABASE_HOSTNAME: str
+    DATABASE_PORT: int
+    DATABASE_NAME: str
 
     class Config:
-        env_file = ".env"
+        # Construct absolute path to .env file in the backend root directory
+        env_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+        )
         env_file_encoding = "utf-8"
         case_sensitive = True
 
