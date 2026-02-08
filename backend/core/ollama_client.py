@@ -28,7 +28,6 @@ class OllamaClient:
         self.model = model
         self.timeout = timeout
 
-    
     def list_models(self):
         """Get a list of available models"""
         url = f"{self.host}/v1/models"
@@ -38,7 +37,7 @@ class OllamaClient:
             return r.json()
         except requests.RequestException as e:
             return {"error": str(e)}
-    
+
     def connect_to_model(self, model_name=None):
         """Connect to a specific model"""
         model_name = model_name or self.model
@@ -57,13 +56,13 @@ class OllamaClient:
             # Ensure model is in payload if not present
             if "model" not in payload:
                 payload["model"] = self.model
-            
+
             # Check if streaming is requested
             stream = payload.get("stream", False)
-            
+
             r = requests.post(url, json=payload, timeout=self.timeout, stream=stream)
             r.raise_for_status()
-            
+
             if stream:
                 return self._parse_streaming_response(r)
             else:
@@ -71,10 +70,12 @@ class OllamaClient:
         except requests.RequestException as e:
             return {"error": str(e)}
 
-    def stream_to_file(self, stream, file_path, prefix=None, suffix=None, is_json=False):
+    def stream_to_file(
+        self, stream, file_path, prefix=None, suffix=None, is_json=False
+    ):
         """
         Writes the stream to a file.
-        
+
         Args:
             stream: The generator from generate_chat_completion
             file_path: The full path to save the file
@@ -93,10 +94,10 @@ class OllamaClient:
         # Simple streaming works for writing straight to file, but removing wrapper chars
         # specifically requires seeing the edges or accumulating content.
         # To keep it simple and robust for small responses: accumulate -> clean -> write.
-        
+
         # However, for true streaming visibility on console, we want to yield as we go.
         # Compromise: We yield raw chunks for console, but we buffer for file writing if valid JSON processing is needed.
-        
+
         for chunk in stream:
             full_content.append(chunk)
             yield chunk
@@ -109,12 +110,12 @@ class OllamaClient:
             text_content = clean_json_block(text_content)
 
         # Write final processed content to file
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             if prefix:
                 f.write(prefix)
-            
+
             f.write(text_content)
-            
+
             if suffix:
                 f.write(suffix)
 
@@ -122,19 +123,22 @@ class OllamaClient:
         """Yields content chunks from a streaming response"""
         for line in response.iter_lines():
             if line:
-                decoded_line = line.decode('utf-8')
-                if decoded_line.startswith('data: '):
-                    data_str = decoded_line[6:] # Strip "data: "
-                    if data_str.strip() == '[DONE]':
+                decoded_line = line.decode("utf-8")
+                if decoded_line.startswith("data: "):
+                    data_str = decoded_line[6:]  # Strip "data: "
+                    if data_str.strip() == "[DONE]":
                         break
                     try:
                         data = json.loads(data_str)
-                        content = data.get('choices', [{}])[0].get('delta', {}).get('content', '')
+                        content = (
+                            data.get("choices", [{}])[0]
+                            .get("delta", {})
+                            .get("content", "")
+                        )
                         if content:
                             yield content
                     except json.JSONDecodeError:
                         pass
-
 
     def post_process_json(self, format_type, output_file):
         # 6. JSON Post-Processing / Validation
@@ -142,10 +146,10 @@ class OllamaClient:
             print("\n\n🔍 JSON Post-Processing Check...")
             try:
                 # We read the cleaned file back
-                with open(output_file, 'r') as f:
+                with open(output_file, "r") as f:
                     data = json.load(f)
-                
-                print(f"✅ Success! Valid JSON parsed.")
+
+                print("✅ Success! Valid JSON parsed.")
                 print(f"📊 Extracted Keys: {list(data.keys())}")
                 if "cost" in data:
                     print(f"💰 Detected Cost: ${data['cost']}")
@@ -153,7 +157,7 @@ class OllamaClient:
             except json.JSONDecodeError as e:
                 print(f"❌ JSON Validation Failed: {e}")
                 # Debug info
-                with open(output_file, 'r') as f:
+                with open(output_file, "r") as f:
                     print(f"File content was: {f.read()}")
 
 
@@ -165,6 +169,6 @@ if __name__ == "__main__":
     # models is object so you can parse it as needed
     for model in models.get("data", []):
         print(f"Model: - {model['id']}")
-    
+
     model_info = client.connect_to_model()
     print(f"Model info for {OLLAMA_MODEL}:", model_info)

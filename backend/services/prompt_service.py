@@ -1,12 +1,11 @@
 import uuid
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from core.models import Prompts
 from schema.schemas import PromptSchema
 from utility.logger import get_logger
 
-lg = get_logger(__file__)
+lg = get_logger(script_path=__file__)
 
 
 class PromptService:
@@ -30,9 +29,9 @@ class PromptService:
             # new_prompt.author_id = author_id # Uncomment when author logic is ready
             lg.debug(f"Saving prompt: {new_prompt.prompt_id}")
 
-            db.add(new_prompt)
+            db.add(instance=new_prompt)
             db.commit()
-            db.refresh(new_prompt)
+            db.refresh(instance=new_prompt)
 
             # Return the Pydantic schema so the rest of the app can use it easily
             return PromptSchema.model_validate(new_prompt)
@@ -70,7 +69,7 @@ class PromptService:
 
         return None
 
-    def get_all_prompt_by_id(self, prompt_id: str, db: Session):
+    def get_all_prompt_by_id(self, prompt_id: str, db: Session) -> Prompts | None:
         lg.debug("Getting all the prompts.")
         try:
             prompts_by_id = (

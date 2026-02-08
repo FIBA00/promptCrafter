@@ -1,7 +1,6 @@
 # Procssing prompt
 from typing import List
 from fastapi import APIRouter, status, Depends
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from schema.schemas import PromptSchema, PromptSchemaOutput
 from sqlalchemy.orm import Session

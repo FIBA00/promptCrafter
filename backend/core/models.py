@@ -1,10 +1,11 @@
-from sqlalchemy import Column, String, ForeignKey, TIMESTAMP
+from sqlalchemy import Column, String, ForeignKey, TIMESTAMP, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import DateTime
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql import func
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.dialects.postgresql import ARRAY
+from fastapi_admin.resources import Model
 
 from db.database import Base
 
@@ -54,6 +55,8 @@ class User(Base):
     password = Column(String, nullable=False)
     email = Column(String, unique=True, index=True)
     phone_number = Column(String, nullable=True)
+    is_admin = Column(Boolean, nullable=False, server_default=False)
+    is_verified = Column(Boolean, nullable=False, server_default=False)
 
     created_at = Column(
         TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
@@ -78,6 +81,26 @@ class StructuredPrompts(Base):
     # Relationships
     author = relationship("User", back_populates="structured_prompts")
     original_prompt = relationship("Prompts", back_populates="structured_version")
+
+
+class UserAdmin(Model):
+    label = "Users"
+    model = User
+    icon = "fa fa-user"
+    page_pre_title = "Users"
+    page_title = "Manage Users"
+    filters = ["id", "email", "created_at"]
+    fields = ["id", "email", "phone_number", "created_at"]
+
+
+class PromptsAdmin(Model):
+    label = "Prompts"
+    model = Prompts
+    icon = "fa fa-file-text"
+    page_pre_title = "Prompts"
+    page_title = "Manage Prompts"
+    filters = ["id", "user_id", "created_at"]
+    fields = ["id", "user_id", "content", "created_at"]
 
 
 """

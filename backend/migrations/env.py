@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 from db.database import Base
 from core.config import settings
-from core import models  # <--- Import models here to register them with Base
+from core import models  # NOQA # <--- Import models here to register them with Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
