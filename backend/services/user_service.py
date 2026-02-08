@@ -5,7 +5,7 @@ from pydantic import EmailStr
 
 
 from core.schemas import UserCreateSchema, UserOutSchema
-from core.models import User
+from db.models import User
 from utility.logger import get_logger
 from utility.tools import hash_password
 from core.custom_error_handlers import (

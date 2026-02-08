@@ -77,9 +77,7 @@ app = FastAPI(
 
 def metrics_app() -> Any:
     """Creates a separate FastAPI app for the /metrics endpoint."""
-    app = FastAPI(
-        prefix=f"/api/{settings.VERSION or version}/metrics", title="Metrics App"
-    )
+    app = FastAPI(prefix="/metrics", title="Metrics App")
     Instrumentator().expose(app)
     return app
 

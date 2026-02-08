@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 
-from core.models import Prompts
+from db.models import Prompts
 from core.schemas import PromptSchema
 from utility.logger import get_logger
 from core.custom_error_handlers import PromptNotFound
