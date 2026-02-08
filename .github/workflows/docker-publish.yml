@@ -48,5 +48,5 @@ jobs:
                         --name promptcrafter-app \
                         --restart always \
                         --network host \
-                        --env-file /home/fraold/secrets/prompt_crafter_secrets.env \
+                        --env-file /home/fraol/secrets/prompt_crafter_secrets.env \
                         fraolbmax/fastapiprojectone:latest
