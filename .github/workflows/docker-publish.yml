@@ -3,8 +3,9 @@ name: Docker Image CI
 on:
     push:
         branches: ["main"]
-    pull_request:
-        branches: ["main"]
+    schedule:
+        # Run approximately every 5 days (on days 1, 6, 11, 16, 21, 26 of each month)
+        - cron: '0 0 1,6,11,16,21,26 * *'
 
 jobs:
     build-and-push:
@@ -24,27 +25,27 @@ jobs:
               with:
                   context: .
                   file: ./Dockerfile
-                  # Push only when the trigger is a push to the main branch
-                  push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+                  # Push when triggered by push to main or scheduled run
+                  push: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' }}
                   tags: fraolbmax/fastapiprojectone:latest
-  deploy:
-    needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Azure VM
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            docker pull fraolbmax/fastapiprojectone:latest
-            docker stop promptcrafter-app || true
-            docker rm promptcrafter-app || true
-            docker run -d \
-              --name promptcrafter-app \
-              --restart always \
-              --network host \
-              --env-file /home/fraold/secrets/prompt_crafter_secrets.env \
-              fraolbmax/fastapiprojectone:latest
+    deploy:
+        needs: build-and-push
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy to Azure VM
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.SERVER_HOST }}
+                  username: ${{ secrets.SERVER_USERNAME }}
+                  key: ${{ secrets.SSH_PRIVATE_KEY }}
+                  script: |
+                    docker pull fraolbmax/fastapiprojectone:latest
+                    docker stop promptcrafter-app || true
+                    docker rm promptcrafter-app || true
+                    docker run -d \
+                      --name promptcrafter-app \
+                      --restart always \
+                      --network host \
+                      --env-file /home/fraold/secrets/prompt_crafter_secrets.env \
+                      fraolbmax/fastapiprojectone:latest
