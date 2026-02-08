@@ -27,3 +27,24 @@ jobs:
                   # Push only when the trigger is a push to the main branch
                   push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
                   tags: fraolbmax/fastapiprojectone:latest
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Azure VM
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker pull fraolbmax/fastapiprojectone:latest
+            docker stop promptcrafter-app || true
+            docker rm promptcrafter-app || true
+            docker run -d \
+              --name promptcrafter-app \
+              --restart always \
+              --network host \
+              --env-file /home/fraold/secrets/prompt_crafter_secrets.env \
+              fraolbmax/fastapiprojectone:latest
