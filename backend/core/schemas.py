@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
 import uuid
@@ -38,13 +38,13 @@ class UserPromptsSchema(PromptSchema):
 
 
 class UserCreateSchema(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
 class UserOutSchema(BaseModel):
     user_id: uuid.UUID
-    email: EmailStr
+    email: str
     created_at: datetime
 
     class Config:

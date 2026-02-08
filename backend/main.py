@@ -11,13 +11,10 @@ from typing import Any
 # Add the directory containing this file to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, HTTPException, status
-from fastapi.security import HTTPBasic
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi_admin.app import app as admin_app
 
-from routers import process_prompt, user
-from core.models import UserAdmin, PromptsAdmin
+from routers import prompt, user
 from core.config import settings
 from core.middleware import register_middleware
 from core.custom_error_handlers import register_all_errors
@@ -42,16 +39,12 @@ A RESTful API for a AI prompt restructing system.
 * **Password Reset** and **Email Verification**.
 
 """
-version = "0.1.0"
+version = settings.VERSION
 
 tags_metadata = [
     {
         "name": "prompts",
         "description": "Operations with prompts. The **CORE** logic of the app.",
-    },
-    {
-        "name": "auth",
-        "description": "Authentication logic. Handles **Login**, **Signup**, and Tokens.",
     },
     {
         "name": "user",
@@ -77,24 +70,6 @@ app = FastAPI(
     docs_url=f"/api/{settings.VERSION or version}/docs",
     redoc_url=f"/api/{settings.VERSION or version}/redoc",
 )
-security = HTTPBasic()
-
-
-@admin_app.on_event("startup")
-async def startup():  # -> Any:
-    admin_app.configure(database_url=SQLALCHEMY_DATABASE_URL, redis_url=REDIS_URL)
-
-
-@admin_app.middleware("http")
-async def admin_auth_middleware(request, call_next):
-    if request.url.path.startswith("/admin"):
-        credentials = await security(request)
-        if credentials.username != "admin" or credentials.password != "admin_password":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
-            )
-    response = await call_next(request)
-    return response
 
 
 # --- Global Exception Handling ---
@@ -102,21 +77,26 @@ async def admin_auth_middleware(request, call_next):
 
 def metrics_app() -> Any:
     """Creates a separate FastAPI app for the /metrics endpoint."""
-    app = FastAPI()
+    app = FastAPI(
+        prefix=f"/api/{settings.VERSION or version}/metrics", title="Metrics App"
+    )
     Instrumentator().expose(app)
     return app
 
 
-register_all_errors(app)
+register_all_errors(app=app)
 register_middleware(app)
-admin_app.register_resources(UserAdmin, PromptsAdmin)
-app.include_router(router=process_prompt.router, prefix="/api/v1", tags=["process"])
-app.include_router(router=user.router, prefix="/api/v1", tags=["process"])
+app.include_router(
+    router=prompt.router, prefix=f"/api/{settings.VERSION or version}", tags=["prompts"]
+)
+app.include_router(
+    router=user.router, prefix=f"/api/{settings.VERSION or version}", tags=["user"]
+)
 
 
 app.mount(
-    path="/home",
+    path=f"/api/{settings.VERSION or version}/home",
     app=StaticFiles(directory=STATIC_FRONTEND_DIR, html=True),
     name="frontend",
 )
-app.mount(path="/admin", app=admin_app, name="admin")
+# app.mount(path=f"/api/{settings.VERSION or version}/admin", app=admin_app, name="admin")

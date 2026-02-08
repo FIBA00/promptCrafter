@@ -2,14 +2,15 @@
 from typing import List
 from fastapi import APIRouter, status, Depends
 from fastapi.responses import FileResponse
-from schema.schemas import PromptSchema, PromptSchemaOutput
+
+from core.schemas import PromptSchema, PromptSchemaOutput
 from sqlalchemy.orm import Session
 from utility.logger import get_logger
 from db.database import get_db
 from services.prompt_service import PromptService
 from services.restructure_prompt_service import RestructuredPromptService
 
-router = APIRouter(prefix="/pcrafter", tags=["process"])
+router = APIRouter(prefix="/pcrafter", tags=["prompts"])
 # router.mount("/static", StaticFiles(directory="static"), name="static")
 prompt_service = PromptService()
 st_prompt_service = RestructuredPromptService()
@@ -17,14 +18,6 @@ lg = get_logger(__file__)
 
 # Note: We rely on the global exception handler in main.py to catch and log any DB errors
 # This keeps our router code clean and the logging consistent.
-
-
-# minimal ui display for main page,
-# where user can just type the prompt and get the structured prompt,
-# later on we can connect frontend
-@router.get("/home", response_class=FileResponse)
-def read_root():
-    return FileResponse("static/index.html", media_type="text/html")
 
 
 # route for recieving prompts

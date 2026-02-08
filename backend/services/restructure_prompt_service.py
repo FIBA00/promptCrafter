@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from schema.schemas import PromptSchema, PromptSchemaOutput
 
+
+from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 
 lg = get_logger(script_path=__file__)

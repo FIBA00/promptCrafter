@@ -10,88 +10,89 @@ from fastapi import status, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from utility.logger import get_logger
+import traceback
 
 lg = get_logger(script_path=__file__)
 
 
-class BooklyException(Exception):
+class PromptCrafterException(Exception):
     """
-    Base Exception for Bookly application."""
+    Base Exception for PromptCrafter application."""
 
     pass
 
 
-class InvalidToken(BooklyException):
+class InvalidToken(PromptCrafterException):
     """
     Exception raised when an invalid token is provided."""
 
     pass
 
 
-class RevokedToken(BooklyException):
+class RevokedToken(PromptCrafterException):
     """
     Exception raised when a revoked token is provided."""
 
     pass
 
 
-class AccssTokenRequired(BooklyException):
+class AccssTokenRequired(PromptCrafterException):
     """
     Exception raised when an access token is required but missing."""
 
     pass
 
 
-class RefreshTokenRequired(BooklyException):
+class RefreshTokenRequired(PromptCrafterException):
     """
     Exception raised when a refresh token is required but missing."""
 
     pass
 
 
-class UserAlreadyExists(BooklyException):
+class UserAlreadyExists(PromptCrafterException):
     """
     Exception raised when attempting to create a user that already exists."""
 
     pass
 
 
-class InvalidCredentials(BooklyException):
+class InvalidCredentials(PromptCrafterException):
     """
     Exception raised when invalid credentials (email or password) are provided."""
 
     pass
 
 
-class BookNotFound(BooklyException):
+class PromptNotFound(PromptCrafterException):
     """
-    Exception raised when a requested book is not found."""
+    Exception raised when a requested prompt is not found."""
 
     pass
 
 
-class UserNotFound(BooklyException):
+class UserNotFound(PromptCrafterException):
     """
     Exception raised when a requested user is not found."""
 
     pass
 
 
-class InsufficientPermissions(BooklyException):
+class InsufficientPermissions(PromptCrafterException):
     """
     Exception raised when a user lacks the necessary permissions."""
 
     pass
 
 
-class TagNotFound(BooklyException):
+class TagNotFound(PromptCrafterException):
     """
     Exception raised when a requested tag is not found."""
 
     pass
 
 
-class AccountNotVerified(BooklyException):
+class AccountNotVerified(PromptCrafterException):
     """
     Exception raised when a user account is not verified
     """
@@ -102,7 +103,7 @@ class AccountNotVerified(BooklyException):
 def create_exception_handler(
     status_code: int, initial_detail: any
 ) -> Callable[[Request, Exception], JSONResponse]:
-    async def exception_handler(request: Request, exc: BooklyException):
+    async def exception_handler(request: Request, exc: PromptCrafterException):
         return JSONResponse(
             status_code=status_code,
             content={"detail": initial_detail},
@@ -197,13 +198,13 @@ def register_all_errors(app: FastAPI):
     )
 
     app.add_exception_handler(
-        BookNotFound,
+        PromptNotFound,
         create_exception_handler(
             status_code=status.HTTP_404_NOT_FOUND,
             initial_detail={
-                "message": "Book Not Found.",
-                "error_code": "book_not_found",
-                "resolution": "Verify the book UID and try again.",
+                "message": "Prompt Not Found.",
+                "error_code": "prompt_not_found",
+                "resolution": "Verify the prompt UID and try again.",
             },
         ),
     )
@@ -243,6 +244,8 @@ def register_all_errors(app: FastAPI):
         ),
     )
 
+    app.add_exception_handler(Exception, global_exception_handler)
+
     @app.exception_handler(500)
     async def internal_server_error(request, exc):
         return JSONResponse(
@@ -255,31 +258,30 @@ def register_all_errors(app: FastAPI):
         )
 
 
-# @app.exception_handler(Exception)
-# async def global_exception_handler(request: Request, exc: Exception):
-#     """
-#     Catches any unhandled exception, logs the full stack trace, and returns
-#     a detailed JSON error response.
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Catches any unhandled exception, logs the full stack trace, and returns
+    a detailed JSON error response.
 
-#     CRITICAL: This prevents random 500 "Internal Server Error" white screens
-#     and ensures we always know exactly what failed in the logs.
-#     """
-#     # Capture the full traceback as a string
-#     error_details = traceback.format_exc()
+    CRITICAL: This prevents random 500 "Internal Server Error" white screens
+    and ensures we always know exactly what failed in the logs.
+    """
+    # Capture the full traceback as a string
+    error_details = traceback.format_exc()
 
-#     # Log it with our custom logger
-#     lg.error(f"Global Exception Caught:\n{error_details}")
+    # Log it with our custom logger
+    lg.error(f"Global Exception Caught:\n{error_details}")
 
-#     # Return a structured error to the client (Helpful for debugging)
-#     # in PROD, you might want to hide the 'traceback' field.
-#     return JSONResponse(
-#         status_code=500,
-#         content={
-#             "status": "error",
-#             "message": "An unexpected internal server error occurred.",
-#             "detail": str(exc),
-#             "path": request.url.path,
-#             "method": request.method,
-#             # "traceback": error_details # Uncomment if you want full stack trace in response
-#         },
-#     )
+    # Return a structured error to the client (Helpful for debugging)
+    # in PROD, you might want to hide the 'traceback' field.
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "An unexpected internal server error occurred.",
+            "detail": str(exc),
+            "path": request.url.path,
+            "method": request.method,
+            # "traceback": error_details # Uncomment if you want full stack trace in response
+        },
+    )

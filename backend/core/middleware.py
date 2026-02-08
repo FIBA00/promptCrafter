@@ -15,16 +15,16 @@ logger.disabled = True
 lg = get_logger(__file__)
 
 
-def register_middlware(app: FastAPI):
+def register_middleware(app: FastAPI):
     # NOTE: custom logging for monitoring the performance, we can disable it later if need be.
-    @app.middleware("http")
-    def custom_logging(request: Request, call_next):
-        start_time = time.time()
-        response = call_next(request)
-        processing_time = time.time() - start_time
-        message = f"{request.method} - {request.url.path} - {response.status_code} - completed after {processing_time} seconds."
-        lg.info(message)
-        return response
+    # @app.middleware("http")
+    # def custom_logging(request: Request, call_next):
+    #     start_time = time.time()
+    #     response = call_next(request)
+    #     processing_time = time.time() - start_time
+    #     message = f"{request.method} - {request.url.path} - {response.status_code} - completed after {processing_time} seconds."
+    #     lg.info(message)
+    #     return response
 
     # our middle wares
     app.add_middleware(
@@ -34,4 +34,6 @@ def register_middlware(app: FastAPI):
         allow_headers=["*"],
         allow_credentials=True,
     )
-    app.middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+    app.add_middleware(
+        TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"]
+    )

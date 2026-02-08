@@ -1,14 +1,18 @@
 import uuid
-from fastapi import status, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from pydantic import EmailStr
 
 
-from schema.schemas import UserCreateSchema, UserOutSchema
+from core.schemas import UserCreateSchema, UserOutSchema
 from core.models import User
 from utility.logger import get_logger
 from utility.tools import hash_password
+from core.custom_error_handlers import (
+    UserAlreadyExists,
+    UserNotFound,
+    InvalidCredentials,
+)
 
 lg = get_logger(__file__)
 
@@ -35,15 +39,20 @@ class UserService:
             db.refresh(new_user)
 
             return UserOutSchema.model_validate(new_user)
+        except IntegrityError as e:
+            # Likely duplicate email
+            db.rollback()
+            lg.error(f"Integrity error creating user: {str(e)}")
+            raise UserAlreadyExists()
         except SQLAlchemyError as e:
             # This catches ANY database error (connection lost, constraint violation, etc.)
             db.rollback()  # CRITICAL: Reset the db so it's clean for the next request
-            lg.error(f"Database Error saving prompt: {str(e)}")
+            lg.error(f"Database Error saving user: {str(e)}")
             raise e  # Re-raise it so the router knows something went wrong
 
         except Exception as e:
             # This catches any other unexpected Python error (like a bug in our code)
-            lg.error(f"Unexpected Error in save_prompt: {str(e)}")
+            lg.error(f"Unexpected Error in save_user: {str(e)}")
             raise e
 
     def get_all_user(self, db: Session):
@@ -55,10 +64,7 @@ class UserService:
             lg.debug(f"Getting user by id: {user_id}")
             user = db.query(User).filter(User.user_id == user_id).first()
             if user is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"user with id: {user_id}, was not found",
-                )
+                raise UserNotFound()
             lg.debug(f"Found user by id: {user_id}: , user email: {user.email}")
             return UserOutSchema.model_validate(user)
         except SQLAlchemyError as e:
@@ -77,10 +83,7 @@ class UserService:
             lg.debug(f"Getting user by email: {email}")
             user = db.query(User).filter(User.email == email).first()
             if user is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"user with email: {email}, was not found",
-                )
+                raise UserNotFound()
             lg.debug(f"Found user by email: {email}: , user id: {user.user_id}")
             return UserOutSchema.model_validate(user)
         except SQLAlchemyError as e:

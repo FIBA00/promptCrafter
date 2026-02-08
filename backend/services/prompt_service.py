@@ -1,9 +1,12 @@
 import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+
+
 from core.models import Prompts
-from schema.schemas import PromptSchema
+from core.schemas import PromptSchema
 from utility.logger import get_logger
+from core.custom_error_handlers import PromptNotFound
 
 lg = get_logger(script_path=__file__)
 
@@ -76,10 +79,10 @@ class PromptService:
                 db.query(Prompts).filter(Prompts.prompt_id == prompt_id).first()
             )
             if not prompts_by_id:
-                lg.debug("Prompts table is empty - no prompts found in the database.")
-                return prompts_by_id
+                lg.debug("Prompt not found in the database.")
+                raise PromptNotFound()
 
-            lg.info("Successfully retreived prompts from database.")
+            lg.info("Successfully retrieved prompts from database.")
             return prompts_by_id
         except SQLAlchemyError as e:
             # This catches ANY database error (connection lost, constraint violation, etc.)
@@ -91,8 +94,6 @@ class PromptService:
             # This catches any other unexpected Python error (like a bug in our code)
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
-
-        return None
 
     def update_prompt(self, prompt_id: str, db: Session):
         lg.debug(f"Updating  prompt: {prompt_id}")
