@@ -60,4 +60,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(process_prompt.router, prefix="/api/v1", tags=["process"])
 app.include_router(user.router, prefix="/api/v1", tags=["process"])
 
-app.mount("/home", StaticFiles(directory="backend/static", html=True), name="frontend")
+# Use absolute path for static files to work in both Docker and local envs
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+app.mount("/home", StaticFiles(directory=static_dir, html=True), name="frontend")
