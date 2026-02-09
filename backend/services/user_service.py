@@ -13,6 +13,7 @@ from core.custom_error_handlers import (
     UserNotFound,
     InvalidCredentials,
     RateLimitExceeded,
+    WeakPasswordError,
 )
 from pydantic import EmailStr
 
@@ -22,13 +23,17 @@ lg = get_logger(__file__)
 class UserService:
     def validate_password_strength(self, password: str):
         if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters long")
+            raise WeakPasswordError("Password must be at least 8 characters long")
         if not any(char.isdigit() for char in password):
-            raise ValueError("Password must contain at least one digit")
+            raise WeakPasswordError("Password must contain at least one digit")
         if not any(char.isupper() for char in password):
-            raise ValueError("Password must contain at least one uppercase letter")
+            raise WeakPasswordError(
+                "Password must contain at least one uppercase letter"
+            )
         if not any(char.islower() for char in password):
-            raise ValueError("Password must contain at least one lowercase letter")
+            raise WeakPasswordError(
+                "Password must contain at least one lowercase letter"
+            )
 
     def create_new_user(self, user_data: UserCreateSchema, db: Session):
         try:
@@ -42,8 +47,10 @@ class UserService:
 
             # create new user, first conver the shcema to dictionary
             user_data_dict = user_data.model_dump()
+
             # Validate password strength
             self.validate_password_strength(user_data_dict["password"])
+
             # check if the user has an id with the request
             if not user_data_dict.get("user_id"):
                 user_data_dict["user_id"] = str(uuid.uuid4())
@@ -127,7 +134,7 @@ class UserService:
         try:
             user = db.query(User).filter(User.user_id == user_id).first()
             if not user:
-                raise UserNotFound
+                raise UserNotFound()
 
             # Check date
             today = datetime.utcnow().date()

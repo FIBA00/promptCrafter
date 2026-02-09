@@ -46,6 +46,8 @@ router = APIRouter(prefix="/user", tags=["user"])
 uservice = UserService()
 lg = get_logger(script_path=__file__)
 
+# utility routes
+
 
 @router.post("/send_mail")
 async def send_email_to_user(emails: EmailModel):
@@ -61,6 +63,57 @@ async def send_email_to_user(emails: EmailModel):
         template_name="verify_account.html",
     )
     return {"message": "Emails sent successfully"}
+
+
+@router.get("/verify_email", status_code=status.HTTP_200_OK)
+def verify_user_account(token: str, session: Session = Depends(get_db)):
+    token_data = decode_url_safe_token(token)
+    user_email = token_data.get("email") if token_data else None
+    if user_email:
+        user = uservice.get_user_by_email(user_email, db=session)
+        if not user:
+            raise UserNotFound()
+
+        uservice.update_user(user=user, user_data={"is_verified": True}, db=session)
+        lg.info(f"User account verified: {user_email}")
+
+        return JSONResponse(
+            content={"message": "Account verified successfully."},
+            status_code=status.HTTP_200_OK,
+        )
+    return JSONResponse(
+        content={"message": "error occured during verification"},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+
+@router.post("/reset-password")
+def reset_password(request: PasswordResetSchema, db: Session = Depends(get_db)):
+    token_data = decode_url_safe_token(request.token)
+    if not token_data:
+        raise InvalidToken()
+
+    user_id = token_data.get("user_id")
+    email = token_data.get("email")
+    user = uservice.get_user_by_email(email, db)
+    if not user or str(user.user_id) != user_id:
+        raise InvalidToken()
+
+    # Validate new password
+    uservice.validate_password_strength(request.new_password)
+
+    # Update password
+    hashed_password = hash_password(request.new_password)
+    uservice.update_user(user=user, user_data={"password": hashed_password}, db=db)
+
+    # Invalidate all tokens
+    uservice.invalidate_all_user_refresh_tokens(user_id, db)
+
+    lg.info(f"Password reset for user: {email}")
+    return {"message": "Password reset successfully."}
+
+
+# main routes
 
 
 @router.post(
@@ -89,29 +142,6 @@ def create_user(user_data: UserCreateSchema, db: Session = Depends(dependency=ge
         "message": "User created successfully, Please check your email for verification",
         "user": new_user,
     }
-
-
-@router.get("/verify_email", status_code=status.HTTP_200_OK)
-def verify_user_account(token: str, session: Session = Depends(get_db)):
-
-    token_data = decode_url_safe_token(token)
-    user_email = token_data.get("email") if token_data else None
-    if user_email:
-        user = uservice.get_user_by_email(user_email, db=session)
-        if not user:
-            raise UserNotFound()
-
-        uservice.update_user(user=user, user_data={"is_verified": True}, db=session)
-        lg.info(f"User account verified: {user_email}")
-
-        return JSONResponse(
-            content={"message": "Account verified successfully."},
-            status_code=status.HTTP_200_OK,
-        )
-    return JSONResponse(
-        content={"message": "error occured during verification"},
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
 
 
 @router.post(path="/id/{user_id}", response_model=UserOutSchema)
@@ -267,32 +297,6 @@ def forgot_password(request: PasswordResetRequestSchema, db: Session = Depends(g
     )
     lg.info(f"Password reset email sent to: {user.email}")
     return {"message": "If the email exists, a reset link has been sent."}
-
-
-@router.post("/reset-password")
-def reset_password(request: PasswordResetSchema, db: Session = Depends(get_db)):
-    token_data = decode_url_safe_token(request.token)
-    if not token_data:
-        raise InvalidToken()
-
-    user_id = token_data.get("user_id")
-    email = token_data.get("email")
-    user = uservice.get_user_by_email(email, db)
-    if not user or str(user.user_id) != user_id:
-        raise InvalidToken()
-
-    # Validate new password
-    uservice.validate_password_strength(request.new_password)
-
-    # Update password
-    hashed_password = hash_password(request.new_password)
-    uservice.update_user(user=user, user_data={"password": hashed_password}, db=db)
-
-    # Invalidate all tokens
-    uservice.invalidate_all_user_refresh_tokens(user_id, db)
-
-    lg.info(f"Password reset for user: {email}")
-    return {"message": "Password reset successfully."}
 
 
 @router.post(path="/logout", status_code=status.HTTP_204_NO_CONTENT)
