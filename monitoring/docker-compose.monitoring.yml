@@ -55,3 +55,4 @@ networks:
     app_network:
         # This connects to the network defined in the main docker-compose-dev.yml
         external: true
+        name: promptcrafter_app_network

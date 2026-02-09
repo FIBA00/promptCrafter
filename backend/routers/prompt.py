@@ -52,7 +52,6 @@ def create_new_prompt(
 # If user is implemented the uncomment the below path operator
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[PromptSchema])
 @cache(expire=60)
-# @router.get("/", status_code=status.HTTP_200_OK)
 def get_all_previous_prompts(db: Session = Depends(get_db)):
     # get historical prompts
     # TODO: this requeires user id  dependency to retrieve the desired prompt

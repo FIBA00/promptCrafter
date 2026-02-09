@@ -230,3 +230,4 @@ websockets==16.0
 sqladmin
 itsdangerous
 fastapi-cache2[redis]
+fastapi-cache2[redis]
