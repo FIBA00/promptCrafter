@@ -1,0 +1,113 @@
+from jwt.exceptions import PyJWTError as JWTError
+from fastapi import Depends, status, HTTPException
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer
+from fastapi.security.http import HTTPAuthorizationCredentials
+
+from utility.logger import get_logger
+from core.config import settings
+from core.schemas import TokenData
+from core.custom_error_handlers import (
+    InvalidToken,
+    AccessTokenRequired,
+)
+from db.redis import token_blacklist, token_in_blocklist
+from auth.oauth2 import decode_access_token
+
+lg = get_logger(__file__)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login"
+)
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = decode_access_token(token)
+        user_id: str = payload.get("user_id")
+        if user_id is None:
+            raise credentials_exception
+
+        token_data = TokenData(
+            user_id=user_id,
+            is_admin=payload.get("is_admin", False),
+            is_verified=payload.get("is_verified", False),
+        )
+        return token_data
+    except JWTError:
+        raise credentials_exception
+
+
+def get_current_active_user(
+    current_user: TokenData = Depends(get_current_user),
+) -> TokenData:
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User is not verified"
+        )
+    return current_user
+
+
+def get_current_admin_user(
+    current_user: TokenData = Depends(get_current_user),
+) -> TokenData:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User is not an admin"
+        )
+    return current_user
+
+
+def get_access_token(
+    creds: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+) -> str:
+    lg.debug(f"Extracted credentials scheme: {creds.scheme}")
+
+    token = creds.credentials
+    lg.debug(f"Validating access token: {token[:10]}...")
+    token_data = decode_access_token(token)
+    if not token_data is not None and "user" in token_data:
+        lg.debug("Token data invalid")
+        raise InvalidToken()
+
+    jti = token_data.get("jti")
+    if jti and token_in_blocklist(jti):
+        lg.debug(f"Token JTO {jti} is in blocklist.")
+        return None
+
+    if token_data.get("refresh", False):
+        lg.error("Refresh token used where access token expected.")
+        raise AccessTokenRequired()
+    lg.debug("Access token validated successfully")
+    return token
+
+
+def get_refresh_token(
+    creds: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+) -> str:
+    lg.debug(f"Extracted credentials scheme: {creds.scheme}")
+
+    token = creds.credentials
+
+    token_data = decode_access_token(token)
+    if not token_data is not None and "user" in token_data:
+        lg.debug("Token data invalid")
+        raise InvalidToken()
+
+    jti = token_data.get("jti")
+    if jti and token_in_blocklist(jti):
+        lg.debug(f"Token JTO {jti} is in blocklist.")
+        return None
+
+    lg.debug("Token is valid")
+    if not token_data.get("refresh", False):
+        lg.error("Access token used where refresh token expected!")
+        raise AccessTokenRequired()
+
+    lg.debug("Refresh token validated successfully")
+    return token

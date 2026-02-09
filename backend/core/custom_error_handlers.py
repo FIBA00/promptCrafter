@@ -50,7 +50,7 @@ class RevokedToken(PromptCrafterException):
     pass
 
 
-class AccssTokenRequired(PromptCrafterException):
+class AccessTokenRequired(PromptCrafterException):
     """
     Exception raised when an access token is required but missing."""
 
@@ -183,7 +183,7 @@ def register_all_errors(app: FastAPI):
     )
 
     app.add_exception_handler(
-        AccssTokenRequired,
+        AccessTokenRequired,
         create_exception_handler(
             status_code=status.HTTP_401_UNAUTHORIZED,
             initial_detail={
