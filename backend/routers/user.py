@@ -5,9 +5,10 @@ from fastapi import (
     Depends,
     BackgroundTasks,
     HTTPException,
-    JSONResponse,
 )
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
+
 from sqlalchemy.orm import Session
 
 from db.database import get_db

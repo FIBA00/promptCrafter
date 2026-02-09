@@ -3,6 +3,10 @@ from datetime import datetime
 from typing import List, Optional
 import uuid
 
+# TODO: Revert to EmailStr when email-validator is installed
+# from pydantic import EmailStr
+EmailStr = str
+
 
 class PromptSchema(BaseModel):
     # so this is basically just a data model for a prompt request from user

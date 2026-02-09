@@ -26,4 +26,6 @@ dependencies = [
     "fastapi-cache2[redis]",
     "fastapi-cache>=0.1.0",
     "sqladmin",
+    "celery>=5.6.2",
+    "asgiref>=3.11.1",
 ]

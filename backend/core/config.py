@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
     DOMAIN_NAME: str
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    JTI_EXPIRY_SECONDS: int = 3600
 
     class Config:
         # Construct absolute path to .env file in the backend root directory

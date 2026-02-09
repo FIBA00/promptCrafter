@@ -165,7 +165,7 @@ def get_current_admin_user(
 
 
 serializer = URLSafeTimedSerializer(
-    secret_key=settings.JWT_SECRET, salt="email-configuration"
+    secret_key=settings.JWT_SECRET_KEY, salt="email-configuration"
 )
 
 

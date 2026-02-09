@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from pydantic import EmailStr
+
+# from pydantic import EmailStr
+EmailStr = str
 
 
 from core.schemas import UserCreateSchema, UserOutSchema
