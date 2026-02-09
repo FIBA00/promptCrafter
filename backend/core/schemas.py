@@ -16,10 +16,10 @@ class PromptSchema(BaseModel):
     created_at: Optional[datetime] = None
 
     # the prompt
-    title: Optional[str]
-    role: Optional[str]
-    task: Optional[str]
-    output: Optional[str]
+    title: Optional[str] = None
+    role: Optional[str] = None
+    task: Optional[str] = None
+    output: Optional[str] = None
     tags: List[str] = []
     constraints: Optional[str] = None
     personality: Optional[str] = None

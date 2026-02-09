@@ -3,9 +3,6 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
-# from pydantic import EmailStr
-EmailStr = str
-
 
 from core.schemas import UserCreateSchema, UserOutSchema
 from db.models import User
@@ -17,6 +14,7 @@ from core.custom_error_handlers import (
     InvalidCredentials,
     RateLimitExceeded,
 )
+from pydantic import EmailStr
 
 lg = get_logger(__file__)
 
@@ -24,9 +22,13 @@ lg = get_logger(__file__)
 class UserService:
     def create_new_user(self, user_data: UserCreateSchema, db: Session):
         try:
-            user_exists = self.get_user_by_email(email=user_data.email, db=db)
-            if user_exists:
-                raise UserAlreadyExists()
+            try:
+                user_exists = self.get_user_by_email(email=user_data.email, db=db)
+                if user_exists:
+                    raise UserAlreadyExists()
+            except UserNotFound:
+                # User does not exist, which is what we want for signup
+                pass
 
             # create new user, first conver the shcema to dictionary
             user_data_dict = user_data.model_dump()
