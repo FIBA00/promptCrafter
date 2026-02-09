@@ -114,6 +114,13 @@ class AccountNotVerified(PromptCrafterException):
     pass
 
 
+class RateLimitExceeded(PromptCrafterException):
+    """
+    Exception raised when a user exceeds their daily token limit."""
+
+    pass
+
+
 def create_exception_handler(
     status_code: int, initial_detail: any
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -254,6 +261,18 @@ def register_all_errors(app: FastAPI):
                 "message": "Account not verified.",
                 "error_code": "account_not_verified",
                 "resolution": "Verify your account by requesting verify email.",
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        RateLimitExceeded,
+        create_exception_handler(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            initial_detail={
+                "message": "Daily token limit exceeded.",
+                "error_code": "rate_limit_exceeded",
+                "resolution": "You have used all your AI tokens for today. Quota resets daily.",
             },
         ),
     )

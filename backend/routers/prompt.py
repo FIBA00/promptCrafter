@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from services.prompt_service import PromptService
 from services.st_prompt_service import RestructuredPromptService
+from services.user_service import UserService
 from utility.logger import get_logger
 
 
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/pcrafter", tags=["prompts"])
 # router.mount("/static", StaticFiles(directory="static"), name="static")
 prompt_service = PromptService()
 st_prompt_service = RestructuredPromptService()
+user_service = UserService()
 lg = get_logger(__file__)
 
 # Note: We rely on the global exception handler in main.py to catch and log any DB errors
@@ -60,6 +62,13 @@ def create_new_prompt(
     """
     # TODO: implement ai based prompt creation , split logic here, where
     #  only verified users can access and the rest uses normal one
+
+    # Rate Limiting Logic
+    if current_user.is_verified:
+        # Check and deduct token before processing
+        # We assume 1 token per request for now
+        user_service.check_daily_limit(db=db, user_id=current_user.user_id, cost=1)
+
     new_prompt = prompt_service.save_prompt(
         db=db, prompt_data=prompt_data, author_id=current_user.user_id
     )

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from pydantic import EmailStr
@@ -12,6 +13,7 @@ from core.custom_error_handlers import (
     UserAlreadyExists,
     UserNotFound,
     InvalidCredentials,
+    RateLimitExceeded,
 )
 
 lg = get_logger(__file__)
@@ -95,6 +97,49 @@ class UserService:
 
     def delete_user(self, email: str, db: Session):
         return None
+
+    def check_daily_limit(self, db: Session, user_id: str, cost: int = 1) -> bool:
+        """
+        Check if user has enough tokens for the request.
+        Resets quota if it's a new day.
+        Raises RateLimitExceeded if not enough tokens.
+        """
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if not user:
+                raise UserNotFound
+
+            # Check date
+            today = datetime.utcnow().date()
+            if user.last_token_reset != today:
+                # Reset
+                lg.debug(f"Resetting tokens for user {user_id}")
+                user.tokens_used_today = 0
+                user.last_token_reset = today
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+
+            if user.tokens_used_today + cost > user.daily_token_limit:
+                lg.warning(f"User {user_id} exceeded daily token limit")
+                raise RateLimitExceeded
+
+            # Deduct (add usage)
+            user.tokens_used_today += cost
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+            lg.debug(
+                f"User {user_id} used {cost} tokens. Balance: {user.daily_token_limit - user.tokens_used_today}"
+            )
+            return True
+
+        except RateLimitExceeded as e:
+            raise e
+        except Exception as e:
+            lg.error(f"Error checking daily limit: {str(e)}")
+            raise e
 
     def update_user(self, email: str, db: Session):
         return None
