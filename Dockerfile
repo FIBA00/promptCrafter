@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt /app/requirements.txt
 
 # Install python dependencies
-RUN pip install --upgrade -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy the rest of the application code
 COPY backend /app
@@ -28,4 +28,4 @@ COPY backend /app
 EXPOSE 8000
 
 # Run uvicorn when the container launches
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

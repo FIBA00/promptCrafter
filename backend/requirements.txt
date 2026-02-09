@@ -2,8 +2,12 @@
 #    uv pip compile pyproject.toml -o requirements.txt
 aiofiles==25.1.0
     # via fastapi-admin
-aioredis==2.0.1
-    # via fastapi-admin
+aioredis==1.3.1
+    # via
+    #   fastapi-admin
+    #   fastapi-cache
+aiosmtplib==5.1.0
+    # via fastapi-mail
 aiosqlite==0.22.1
     # via tortoise-orm
 alembic==1.18.3
@@ -26,12 +30,16 @@ bcrypt==5.0.0
     # via
     #   backend (pyproject.toml)
     #   fastapi-admin
+blinker==1.9.0
+    # via fastapi-mail
 certifi==2026.1.4
     # via
     #   httpcore
     #   httpx
     #   requests
     #   sentry-sdk
+cffi==2.0.0
+    # via cryptography
 charset-normalizer==3.4.4
     # via requests
 click==8.3.1
@@ -39,22 +47,35 @@ click==8.3.1
     #   rich-toolkit
     #   typer
     #   uvicorn
+cryptography==46.0.4
+    # via fastapi-mail
 dnspython==2.8.0
     # via email-validator
+ecdsa==0.19.1
+    # via python-jose
 email-validator==2.3.0
     # via
+    #   backend (pyproject.toml)
     #   fastapi
+    #   fastapi-mail
     #   pydantic
 fastapi==0.128.0
     # via
     #   backend (pyproject.toml)
     #   fastapi-admin
+    #   fastapi-cache2
 fastapi-admin==1.0.4
+    # via backend (pyproject.toml)
+fastapi-cache==0.1.0
+    # via backend (pyproject.toml)
+fastapi-cache2==0.2.2
     # via backend (pyproject.toml)
 fastapi-cli==0.0.20
     # via fastapi
 fastapi-cloud-cli==0.11.0
     # via fastapi-cli
+fastapi-mail==1.6.1
+    # via backend (pyproject.toml)
 fastar==0.8.0
     # via fastapi-cloud-cli
 greenlet==3.3.1
@@ -65,6 +86,8 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
+hiredis==3.3.0
+    # via aioredis
 httpcore==1.0.9
     # via httpx
 httptools==0.7.1
@@ -90,6 +113,7 @@ jinja2==3.1.6
     # via
     #   fastapi
     #   fastapi-admin
+    #   fastapi-mail
 mako==1.3.10
     # via alembic
 markdown-it-py==4.0.0
@@ -107,7 +131,9 @@ packaging==26.0
     #   gunicorn
     #   pytest
 pendulum==3.2.0
-    # via fastapi-admin
+    # via
+    #   fastapi-admin
+    #   fastapi-cache2
 pluggy==1.6.0
     # via pytest
 prometheus-client==0.24.1
@@ -116,11 +142,18 @@ prometheus-fastapi-instrumentator==7.1.0
     # via backend (pyproject.toml)
 psycopg2-binary==2.9.11
     # via backend (pyproject.toml)
+pyasn1==0.6.2
+    # via
+    #   python-jose
+    #   rsa
+pycparser==3.0
+    # via cffi
 pydantic==2.12.5
     # via
     #   backend (pyproject.toml)
     #   fastapi
     #   fastapi-cloud-cli
+    #   fastapi-mail
     #   pydantic-extra-types
     #   pydantic-settings
 pydantic-core==2.41.5
@@ -131,6 +164,7 @@ pydantic-settings==2.12.0
     # via
     #   backend (pyproject.toml)
     #   fastapi
+    #   fastapi-mail
 pygments==2.19.2
     # via
     #   pytest
@@ -146,6 +180,8 @@ python-dotenv==1.2.1
     #   backend (pyproject.toml)
     #   pydantic-settings
     #   uvicorn
+python-jose==3.5.0
+    # via backend (pyproject.toml)
 python-multipart==0.0.22
     # via
     #   fastapi
@@ -156,6 +192,10 @@ pyyaml==6.0.3
     # via
     #   fastapi
     #   uvicorn
+redis==4.6.0
+    # via fastapi-cache2
+regex==2025.11.3
+    # via fastapi-mail
 requests==2.32.5
     # via backend (pyproject.toml)
 rich==14.3.2
@@ -168,12 +208,16 @@ rich-toolkit==0.18.1
     #   fastapi-cloud-cli
 rignore==0.7.6
     # via fastapi-cloud-cli
+rsa==4.9.1
+    # via python-jose
 sentry-sdk==2.51.0
     # via fastapi-cloud-cli
 shellingham==1.5.4
     # via typer
 six==1.17.0
-    # via python-dateutil
+    # via
+    #   ecdsa
+    #   python-dateutil
 sqlalchemy==2.0.46
     # via
     #   backend (pyproject.toml)
@@ -181,6 +225,7 @@ sqlalchemy==2.0.46
 starlette==0.50.0
     # via
     #   fastapi
+    #   fastapi-mail
     #   prometheus-fastapi-instrumentator
 tortoise-orm==0.25.4
     # via fastapi-admin
@@ -190,10 +235,11 @@ typer==0.21.1
     #   fastapi-cloud-cli
 typing-extensions==4.15.0
     # via
-    #   aioredis
     #   alembic
     #   anyio
     #   fastapi
+    #   fastapi-cache2
+    #   fastapi-mail
     #   pydantic
     #   pydantic-core
     #   pydantic-extra-types
@@ -219,6 +265,7 @@ uvicorn==0.40.0
     #   backend (pyproject.toml)
     #   fastapi
     #   fastapi-admin
+    #   fastapi-cache2
     #   fastapi-cli
     #   fastapi-cloud-cli
 uvloop==0.22.1
@@ -227,3 +274,4 @@ watchfiles==1.1.1
     # via uvicorn
 websockets==16.0
     # via uvicorn
+sqladmin

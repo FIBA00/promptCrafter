@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     DATABASE_NAME: str
     REDIS_URL: str
     VERSION: str
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
 
     class Config:
         # Construct absolute path to .env file in the backend root directory

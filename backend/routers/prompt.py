@@ -1,14 +1,27 @@
 # Procssing prompt
+"""
+This module defines the API endpoints for prompt management within the promptCrafter backend.
+
+Imports:
+    FileResponse (fastapi.responses): Used for sending files as responses from endpoints, if needed.
+    Other imports provide schema definitions, authentication dependencies, database session management, and prompt-related services.
+
+Note:
+    FileResponse is currently imported for potential future use in endpoints that may need to return files (e.g., prompt exports or downloads).
+"""
+
 from typing import List
 from fastapi import APIRouter, status, Depends
 from fastapi.responses import FileResponse
+from fastapi_cache.decorator import cache
 
 from core.schemas import PromptSchema, PromptSchemaOutput
+from core.oauth2 import get_current_active_user, get_current_user
 from sqlalchemy.orm import Session
-from utility.logger import get_logger
 from db.database import get_db
 from services.prompt_service import PromptService
-from services.restructure_prompt_service import RestructuredPromptService
+from services.st_prompt_service import RestructuredPromptService
+from utility.logger import get_logger
 
 router = APIRouter(prefix="/pcrafter", tags=["prompts"])
 # router.mount("/static", StaticFiles(directory="static"), name="static")
@@ -23,17 +36,15 @@ lg = get_logger(__file__)
 # route for recieving prompts
 @router.post("/", status_code=status.HTTP_200_OK, response_model=PromptSchemaOutput)
 def create_new_prompt(
-    db: Session = Depends(get_db), prompt_data: PromptSchema = None
+    db: Session = Depends(get_db),
+    prompt_data: PromptSchema = None,
+    current_user=Depends(get_current_user),
 ) -> PromptSchemaOutput:
-    # process the prompt here, and create dependency current_user, to keep track of users.
-    # user = get_current_user()
-    # TODO: step 1 : check if the current session has user id with the request
-    # step 2 : if there is no id and user has sent the prompt create user id
-    # step 3 : update the user, prompt, structured_prompt tables with new information
-
-    new_prompt = prompt_service.save_prompt(db=db, prompt_data=prompt_data)
+    new_prompt = prompt_service.save_prompt(
+        db=db, prompt_data=prompt_data, author_id=current_user.user_id
+    )
     st_prompt = st_prompt_service.create_structured_prompt(
-        session=db, prompt_data=new_prompt
+        db=db, prompt_data=new_prompt
     )
     return st_prompt
 
@@ -45,7 +56,7 @@ def create_new_prompt(
 
 # If user is implemented the uncomment the below path operator
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[PromptSchema])
-# @router.get("/", status_code=status.HTTP_200_OK)
+@cache(expire=60)
 def get_all_previous_prompts(db: Session = Depends(get_db)):
     # get historical prompts
     # TODO: this requeires user id  dependency to retrieve the desired prompt

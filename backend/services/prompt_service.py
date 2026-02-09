@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 
-from core.models import Prompts
+from db.models import Prompts
 from core.schemas import PromptSchema
 from utility.logger import get_logger
 from core.custom_error_handlers import PromptNotFound
@@ -24,9 +24,19 @@ class PromptService:
             prompt_data_dict = prompt_data.model_dump()
 
             # We must use the SQLAlchemy Model (Prompts), not the Pydantic Schema
+            # Ensure prompt_id is a string
             if not prompt_data_dict.get("prompt_id"):
                 prompt_data_dict["prompt_id"] = str(uuid.uuid4())
+            elif isinstance(prompt_data_dict["prompt_id"], uuid.UUID):
+                prompt_data_dict["prompt_id"] = str(prompt_data_dict["prompt_id"])
 
+            # Handle author_id
+            if author_id:
+                prompt_data_dict["author_id"] = str(author_id)
+            elif prompt_data_dict.get("author_id") and isinstance(
+                prompt_data_dict["author_id"], uuid.UUID
+            ):
+                prompt_data_dict["author_id"] = str(prompt_data_dict["author_id"])
             new_prompt = Prompts(**prompt_data_dict)
 
             # new_prompt.author_id = author_id # Uncomment when author logic is ready

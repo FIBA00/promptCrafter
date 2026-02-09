@@ -46,6 +46,19 @@ class UserOutSchema(BaseModel):
     user_id: uuid.UUID
     email: str
     created_at: datetime
+    is_admin: bool
+    is_verified: bool
 
     class Config:
         from_attributes = True
+
+
+class TokenData(BaseModel):
+    user_id: Optional[str] = None
+    is_admin: bool = False
+    is_verified: bool = False
+
+
+class TokenOutSchema(BaseModel):
+    access_token: str
+    token_type: str
