@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import List, Optional
 import uuid
@@ -72,3 +72,7 @@ class TokenData(BaseModel):
 class TokenOutSchema(BaseModel):
     access_token: str
     token_type: str
+
+
+class EmailModel(BaseModel):
+    emails: List[EmailStr]

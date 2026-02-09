@@ -22,6 +22,10 @@ lg = get_logger(__file__)
 class UserService:
     def create_new_user(self, user_data: UserCreateSchema, db: Session):
         try:
+            user_exists = self.get_user_by_email(email=user_data.email, db=db)
+            if user_exists:
+                raise UserAlreadyExists()
+
             # create new user, first conver the shcema to dictionary
             user_data_dict = user_data.model_dump()
             # check if the user has an id with the request
@@ -141,5 +145,24 @@ class UserService:
             lg.error(f"Error checking daily limit: {str(e)}")
             raise e
 
-    def update_user(self, email: str, db: Session):
+    def update_user(self, user: User, user_data: dict, db: Session):
+        lg.info(f"Updating user with email: {user.email}")
+        # Update user fields based on provided data
+        for key, value in user_data.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+        try:
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            lg.info(f"User updated successfully: {user.email}")
+            return UserOutSchema.model_validate(user)
+        except SQLAlchemyError as e:
+            db.rollback()
+            lg.error(f"Database Error updating user: {str(e)}")
+            raise e
+        except Exception as e:
+            lg.error(f"Unexpected Error updating user: {str(e)}")
+            raise e
+
         return None
