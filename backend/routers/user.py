@@ -1,10 +1,14 @@
 # user page
 from fastapi import APIRouter, status, Depends
-from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from db.database import get_db
-from core.schemas import UserCreateSchema, UserOutSchema, TokenOutSchema
+from core.schemas import (
+    UserCreateSchema,
+    UserOutSchema,
+    TokenOutSchema,
+    UserLoginSchema,
+)
 from core.custom_error_handlers import InvalidCredentials
 from core.oauth2 import verify_password, create_access_token
 
@@ -33,16 +37,16 @@ def get_user_by_id(user_id: str, db: Session = Depends(dependency=get_db)):
 
 @router.post(path="/login", response_model=TokenOutSchema)
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    user_credentials: UserLoginSchema,
     db: Session = Depends(dependency=get_db),
 ):
     # first we need function in the service to verify the user credentials and return the user if valid
-    user = uservice.get_user_by_email(email=form_data.username, db=db)
+    user = uservice.get_user_by_email(email=user_credentials.email, db=db)
     if not user:
         raise InvalidCredentials()
 
     # verify the password
-    if not verify_password(form_data.password, user.password):
+    if not verify_password(user_credentials.password, user.password):
         raise InvalidCredentials()
 
     # second we need access token  generation function in the tools
