@@ -35,13 +35,12 @@ class RestructuredPromptService:
             # TODO: Migrate the database driver to async because this method alone requires async job.
             st_prompt = self.psystem.create_prompt_normal_way(prompt_data=prompt_data)
 
-            if not self.save_structured_prompt(
+            self.save_structured_prompt(
                 structured_prompt=st_prompt,
                 db=db,
                 author_id=prompt_data.author_id,
                 original_prompt_id=prompt_data.prompt_id,
-            ):
-                return None
+            )
 
             return st_prompt
 
@@ -72,6 +71,9 @@ class RestructuredPromptService:
         lg.debug("Saving the restructured prompts.")
         try:
             st_prompt_dict = structured_prompt.model_dump()
+            # Remove details as it is not a column in DB
+            if "details" in st_prompt_dict:
+                del st_prompt_dict["details"]
 
             # Generate new PK for structured_prompts table
             st_prompt_dict["prompt_id"] = str(uuid.uuid4())
@@ -100,8 +102,6 @@ class RestructuredPromptService:
             # This catches any other unexpected Python error (like a bug in our code)
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
-
-        return True
 
     def delete_structured_prompt(self, structured_prompt_id: str, db: Session):
         """
@@ -209,7 +209,9 @@ class PromptSystem:
             output=output,
             personality=personality,
         )
-        return PromptSchemaOutput(structured_prompt=structured, natural_prompt=natural)
+        return PromptSchemaOutput(
+            structured_prompt=structured, natural_prompt=natural, details=prompt_data
+        )
 
     def create_prompt_using_ai(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
         """

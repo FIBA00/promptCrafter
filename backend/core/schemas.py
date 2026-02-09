@@ -10,14 +10,14 @@ class PromptSchema(BaseModel):
     prompt_id: Optional[uuid.UUID] = None
     author_id: Optional[uuid.UUID] = None
     created_at: Optional[datetime] = None
-    tags: List[str] = []
 
     # the prompt
     title: Optional[str] = None
     role: Optional[str] = None
-    task: str
-    constraints: Optional[str] = None
+    task: Optional[str] = None
     output: Optional[str] = None
+    tags: List[str] = []
+    constraints: Optional[str] = None
     personality: Optional[str] = None
 
     class Config:
@@ -28,6 +28,11 @@ class PromptSchemaOutput(BaseModel):
     # so this is the response schema for our modified prompt
     structured_prompt: str
     natural_prompt: str
+    # we need to return the prompt id and author id to link the prompt and structured prompt together, but from the PromptSchema
+    details: PromptSchema
+
+    class Config:
+        from_attributes = True
 
 
 class UserPromptsSchema(PromptSchema):

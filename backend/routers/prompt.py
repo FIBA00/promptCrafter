@@ -13,15 +13,16 @@ Note:
 from typing import List
 from fastapi import APIRouter, status, Depends
 from fastapi.responses import FileResponse
-from fastapi_cache.decorator import cache
 
 from core.schemas import PromptSchema, PromptSchemaOutput
 from core.oauth2 import get_current_active_user, get_current_user
+from core.custom_error_handlers import PromptNotModified
 from sqlalchemy.orm import Session
 from db.database import get_db
 from services.prompt_service import PromptService
 from services.st_prompt_service import RestructuredPromptService
 from utility.logger import get_logger
+
 
 router = APIRouter(prefix="/pcrafter", tags=["prompts"])
 # router.mount("/static", StaticFiles(directory="static"), name="static")
@@ -36,17 +37,26 @@ lg = get_logger(__file__)
 # route for recieving prompts
 @router.post("/", status_code=status.HTTP_200_OK, response_model=PromptSchemaOutput)
 def create_new_prompt(
+    prompt_data: PromptSchema,
     db: Session = Depends(get_db),
-    prompt_data: PromptSchema = None,
     current_user=Depends(get_current_user),
 ) -> PromptSchemaOutput:
+
     new_prompt = prompt_service.save_prompt(
         db=db, prompt_data=prompt_data, author_id=current_user.user_id
     )
-    st_prompt = st_prompt_service.create_structured_prompt(
-        db=db, prompt_data=new_prompt
-    )
-    return st_prompt
+    lg.debug(f"Original prompt: {new_prompt}")
+    if new_prompt:
+        st_prompt = st_prompt_service.create_structured_prompt(
+            db=db, prompt_data=new_prompt
+        )
+        # lg.debug(f"Restructured prompt: {st_prompt}")
+        if st_prompt is not None:
+            return st_prompt
+
+    else:
+        # if the structured prompt creation fails, we can still return the original prompt data
+        raise PromptNotModified
 
 
 # NOTE: so instead of separately returning the prompt and structured prompt for this routes
@@ -56,7 +66,6 @@ def create_new_prompt(
 
 # If user is implemented the uncomment the below path operator
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[PromptSchema])
-@cache(expire=60)
 def get_all_previous_prompts(db: Session = Depends(get_db)):
     # get historical prompts
     # TODO: this requeires user id  dependency to retrieve the desired prompt

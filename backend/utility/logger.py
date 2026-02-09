@@ -84,7 +84,7 @@ from logging import (
     StreamHandler,
     FileHandler,
     Formatter,
-    DEBUG,
+    INFO,
 )
 from threading import Lock
 from typing import Dict
@@ -155,16 +155,16 @@ class LogManager:
         self.log_file: str = os.path.join(LOG_DIR, f"{script_name}.log")
         # Create or retrieve a lgwith the script name
         self.logger = getLogger(script_name)
-        self.logger.setLevel(DEBUG)  # Set default log level to DEBUG for all handlers
+        self.logger.setLevel(INFO)  # Set default log level to INFO for all handlers
         self.logger.propagate = False  # Prevent logging to root logger (double logging)
         # Prevent duplicate handlers if lgalready exists
         if not self.logger.handlers:
             # Create a console (stream) handler for real-time output
             stream_handler: StreamHandler = StreamHandler(sys.stdout)
-            stream_handler.setLevel(DEBUG)
+            stream_handler.setLevel(INFO)
             # Create a file handler for persistent log storage
             file_handler: FileHandler = FileHandler(self.log_file, encoding="utf-8")
-            file_handler.setLevel(DEBUG)
+            file_handler.setLevel(INFO)
             # Define a formatter for consistent log message formatting
             # Formatter includes date and time (no microseconds), logger name, level, line number, and message
             # Use datefmt for formatting the date and time in log messages.

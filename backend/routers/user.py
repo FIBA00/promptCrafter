@@ -1,5 +1,6 @@
 # user page
 from fastapi import APIRouter, status, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from db.database import get_db
@@ -37,11 +38,11 @@ def get_user_by_id(user_id: str, db: Session = Depends(dependency=get_db)):
 
 @router.post(path="/login", response_model=TokenOutSchema)
 def login(
-    user_credentials: UserLoginSchema,
+    user_credentials: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(dependency=get_db),
 ):
     # first we need function in the service to verify the user credentials and return the user if valid
-    user = uservice.get_user_by_email(email=user_credentials.email, db=db)
+    user = uservice.get_user_by_email(email=user_credentials.username, db=db)
     if not user:
         raise InvalidCredentials()
 

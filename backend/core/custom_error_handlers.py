@@ -22,6 +22,13 @@ class PromptCrafterException(Exception):
     pass
 
 
+class PromptNotModified(PromptCrafterException):
+    """
+    Exception raised when a prompt modification request does not result in any changes."""
+
+    pass
+
+
 class InvalidToken(PromptCrafterException):
     """
     Exception raised when an invalid token is provided."""
@@ -243,7 +250,17 @@ def register_all_errors(app: FastAPI):
             },
         ),
     )
-
+    app.add_exception_handler(
+        PromptNotModified,
+        create_exception_handler(
+            status_code=status.HTTP_304_NOT_MODIFIED,
+            initial_detail={
+                "message": "Prompt not modified.",
+                "error_code": "prompt_not_modified",
+                "resolution": "The prompt was not modified because the prompt has missing 'role' . Please make changes to the prompt data and try again.",
+            },
+        ),
+    )
     app.add_exception_handler(Exception, global_exception_handler)
 
     @app.exception_handler(500)

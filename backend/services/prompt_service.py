@@ -24,11 +24,9 @@ class PromptService:
             prompt_data_dict = prompt_data.model_dump()
 
             # We must use the SQLAlchemy Model (Prompts), not the Pydantic Schema
-            # Ensure prompt_id is a string
-            if not prompt_data_dict.get("prompt_id"):
-                prompt_data_dict["prompt_id"] = str(uuid.uuid4())
-            elif isinstance(prompt_data_dict["prompt_id"], uuid.UUID):
-                prompt_data_dict["prompt_id"] = str(prompt_data_dict["prompt_id"])
+            # Force generation of a new ID for creation to avoid collisions with
+            # default/placeholder IDs sent by clients (e.g. Swagger UI defaulting to 3fa8...)
+            prompt_data_dict["prompt_id"] = str(uuid.uuid4())
 
             # Handle author_id
             if author_id:
