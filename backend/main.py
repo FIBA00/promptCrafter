@@ -39,7 +39,7 @@ A RESTful API for a AI prompt restructing system.
 * **Password Reset** and **Email Verification**.
 
 """
-version = settings.VERSION
+version = settings.VERSION or "v1.1"
 
 tags_metadata = [
     {

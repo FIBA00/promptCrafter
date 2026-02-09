@@ -49,3 +49,8 @@ class UserOutSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TokenOutSchema(BaseModel):
+    access_token: str
+    token_type: str

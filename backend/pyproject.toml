@@ -22,4 +22,5 @@ dependencies = [
     "fastapi-admin>=1.0.4",
     "fastapi-mail>=1.6.1",
     "email-validator>=2.3.0",
+    "python-jose",
 ]

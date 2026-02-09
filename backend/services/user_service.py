@@ -7,7 +7,7 @@ from pydantic import EmailStr
 from core.schemas import UserCreateSchema, UserOutSchema
 from db.models import User
 from utility.logger import get_logger
-from utility.tools import hash_password
+from core.oauth2 import hash_password
 from core.custom_error_handlers import (
     UserAlreadyExists,
     UserNotFound,
@@ -55,10 +55,6 @@ class UserService:
             lg.error(f"Unexpected Error in save_user: {str(e)}")
             raise e
 
-    def get_all_user(self, db: Session):
-        lg.debug("Getting all the prompts.")
-        return None
-
     def get_user_by_id(self, user_id: str, db: Session):
         try:
             lg.debug(f"Getting user by id: {user_id}")
@@ -85,7 +81,7 @@ class UserService:
             if user is None:
                 raise UserNotFound()
             lg.debug(f"Found user by email: {email}: , user id: {user.user_id}")
-            return UserOutSchema.model_validate(user)
+            return user  # NOTE:do not validate the user here becuase we need all the fields for the login function including hashed password!
         except SQLAlchemyError as e:
             # This catches ANY database error (connection lost, constraint violation, etc.)
             db.rollback()  # CRITICAL: Reset the db so it's clean for the next request

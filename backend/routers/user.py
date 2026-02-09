@@ -1,12 +1,15 @@
 # user page
 from fastapi import APIRouter, status, Depends
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from core.schemas import UserCreateSchema, UserOutSchema
-from utility.logger import get_logger
 from db.database import get_db
-from services.user_service import UserService
+from core.schemas import UserCreateSchema, UserOutSchema, TokenOutSchema
+from core.custom_error_handlers import InvalidCredentials
+from core.oauth2 import verify_password, create_access_token
 
+from utility.logger import get_logger
+from services.user_service import UserService
 
 router = APIRouter(prefix="/user", tags=["user"])
 # router.mount("/static", StaticFiles(directory="static"), name="static")
@@ -22,18 +25,27 @@ def create_user(user_data: UserCreateSchema, db: Session = Depends(dependency=ge
     return new_user
 
 
-@router.post(path="/id/{user_id}")
+@router.post(path="/id/{user_id}", response_model=UserOutSchema)
 def get_user_by_id(user_id: str, db: Session = Depends(dependency=get_db)):
     user = uservice.get_user_by_id(user_id=user_id, db=db)
     return user
 
 
-@router.post("/email/{user_email}")
-def get_user_by_email(user_email: str, db: Session = Depends(dependency=get_db)):
-    user = uservice.get_user_by_email(email=user_email, db=db)
-    return user
+@router.post(path="/login", response_model=TokenOutSchema)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(dependency=get_db),
+):
+    # first we need function in the service to verify the user credentials and return the user if valid
+    user = uservice.get_user_by_email(email=form_data.username, db=db)
+    if not user:
+        raise InvalidCredentials()
 
+    # verify the password
+    if not verify_password(form_data.password, user.password):
+        raise InvalidCredentials()
 
-@router.get(path="/{id}")
-def login(id: int, db: Session = Depends(dependency=get_db)):
-    pass
+    # second we need access token  generation function in the tools
+    access_token = create_access_token(user_data={"user_id": user.user_id})
+
+    return {"access_token": access_token, "token_type": "bearer"}
