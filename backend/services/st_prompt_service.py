@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
+from core.ollama_client import OllamaClient
 
 lg = get_logger(script_path=__file__)
 
@@ -21,19 +22,27 @@ class RestructuredPromptService:
         """
         self.psystem = PromptSystem()
 
-    def create_structured_prompt(self, db: Session, prompt_data: PromptSchema):
+    def create_structured_prompt(
+        self, db: Session, prompt_data: PromptSchema, use_ai: bool = False
+    ):
         """
         Create a structured prompt using the provided prompt data and save it to the database.
         This method first saves a placeholder (None) and then generates the structured prompt using PromptSystem.
         Args:
             db (Session): SQLAlchemy database session.
             prompt_data (PromptSchema): Data required to generate the prompt.
+            use_ai (bool): Whether to use AI for prompt generation.
         Returns:
             PromptSchemaOutput: The generated structured and natural prompt.
         """
         try:
             # TODO: Migrate the database driver to async because this method alone requires async job.
-            st_prompt = self.psystem.create_prompt_normal_way(prompt_data=prompt_data)
+            if use_ai:
+                st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+            else:
+                st_prompt = self.psystem.create_prompt_normal_way(
+                    prompt_data=prompt_data
+                )
 
             self.save_structured_prompt(
                 structured_prompt=st_prompt,
@@ -216,20 +225,56 @@ class PromptSystem:
     def create_prompt_using_ai(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
         """
         Generate a structured and natural prompt using an AI model (e.g., OllamaClient).
-        This is an advanced feature for future implementation.
         Args:
             prompt_data (PromptSchema): The input data for prompt creation.
         Returns:
-            PromptSchemaOutput: The structured and natural prompt output (to be implemented).
+            PromptSchemaOutput: The structured and natural prompt output.
         """
-        # TODO: Implement ai based feature
-        # build_prompt_for_ollama
-        # import ollam client,
-        # select model
-        # call the api and pass our data and prompt for ollma also
-        # it needs custom response handling this is advaced feature
-        #  return PromptSchemaOutput(structured_prompt=structured, natural_prompt=natural)
-        pass
+        # Fallback to normal way if anything goes wrong or for comparison
+        natural_base = self.build_natural_prompt(
+            prompt_data.role,
+            prompt_data.task,
+            prompt_data.constraints,
+            prompt_data.output,
+            prompt_data.personality,
+        )
+
+        try:
+            client = OllamaClient()
+
+            system_instruction = (
+                "You are an expert prompt engineer. Refine the following user request into a clear, "
+                "structured, and highly effective prompt. Return ONLY the improved prompt text."
+            )
+
+            payload = {
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": natural_base},
+                ],
+                "stream": False,
+            }
+
+            response = client.generate_chat_completion(payload)
+
+            # Extract content from response (assuming OpenAI format as implied by endpoint structure)
+            if "choices" in response and len(response["choices"]) > 0:
+                ai_content = response["choices"][0]["message"]["content"]
+            else:
+                lg.warning(f"Unexpected AI response format: {response}")
+                return self.create_prompt_normal_way(prompt_data)
+
+            # For now, we populate 'structured_prompt' with the AI Version
+            # and keep 'natural_prompt' as the baseline assembled version
+            return PromptSchemaOutput(
+                structured_prompt=ai_content,
+                natural_prompt=natural_base,
+                details=prompt_data,
+            )
+
+        except Exception as e:
+            lg.error(f"Error in create_prompt_using_ai: {str(e)}")
+            return self.create_prompt_normal_way(prompt_data)
 
     def build_structured_prompt(self, role, task, constraints, output, personality):
         """

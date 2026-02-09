@@ -14,7 +14,7 @@ from typing import List
 from fastapi import APIRouter, status, Depends, HTTPException
 
 from core.schemas import PromptSchema, PromptSchemaOutput
-from core.oauth2 import get_current_active_user, get_current_user
+from core.oauth2 import get_current_user
 from core.custom_error_handlers import PromptNotModified, PromptsNotFoundForCurrentUser
 from sqlalchemy.orm import Session
 from db.database import get_db
@@ -65,8 +65,11 @@ def create_new_prompt(
     )
     lg.debug(f"Original prompt: {new_prompt}")
     if new_prompt:
+        # Determine if we should use AI based on user verification
+        use_ai = current_user.is_verified
+
         st_prompt = st_prompt_service.create_structured_prompt(
-            db=db, prompt_data=new_prompt
+            db=db, prompt_data=new_prompt, use_ai=use_ai
         )
         # lg.debug(f"Restructured prompt: {st_prompt}")
         if st_prompt is not None:
