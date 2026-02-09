@@ -3,8 +3,6 @@ from fastapi import (
     APIRouter,
     status,
     Depends,
-    BackgroundTasks,
-    HTTPException,
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
@@ -12,16 +10,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from db.database import get_db
-from db.redis import add_jit_to_blocklist
 from core.schemas import (
     UserCreateSchema,
     UserOutSchema,
     TokenOutSchema,
-    UserLoginSchema,
     EmailModel,
+    UserSignupResponse,
 )
 from core.config import settings
-from core.send_mail import mail, create_message
 from core.celery_tasks import send_email
 from core.custom_error_handlers import InvalidCredentials
 from core.oauth2 import (
@@ -31,10 +27,7 @@ from core.oauth2 import (
     decode_url_safe_token,
 )
 from core.custom_error_handlers import (
-    UserAlreadyExists,
     UserNotFound,
-    InvalidCredentials,
-    RateLimitExceeded,
 )
 
 
@@ -65,12 +58,14 @@ async def send_email_to_user(emails: EmailModel):
 
 
 @router.post(
-    path="/signup", status_code=status.HTTP_201_CREATED, response_model=UserOutSchema
+    path="/signup",
+    status_code=status.HTTP_201_CREATED,
+    response_model=UserSignupResponse,
 )
 def create_user(user_data: UserCreateSchema, db: Session = Depends(dependency=get_db)):
     new_user = uservice.create_new_user(user_data=user_data, db=db)
     signup_token = create_url_safe_token(
-        {"user_id": new_user.user_id, "email": new_user.email}
+        {"user_id": str(new_user.user_id), "email": new_user.email}
     )
     verification_link = f"http://{settings.DOMAIN_NAME}/api/{settings.VERSION or 'v1.1'}/user/verify_email?token={signup_token}"
 

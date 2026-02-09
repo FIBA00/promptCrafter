@@ -67,6 +67,11 @@ class UserOutSchema(BaseModel):
         from_attributes = True
 
 
+class UserSignupResponse(BaseModel):
+    message: str
+    user: UserOutSchema
+
+
 class TokenData(BaseModel):
     user_id: Optional[str] = None
     is_admin: bool = False
