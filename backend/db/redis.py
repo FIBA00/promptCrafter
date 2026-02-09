@@ -37,3 +37,24 @@ async def token_in_blocklist(jti: str) -> bool:
     """
     jti = await token_blacklist.get(name=jti)
     return jti is not None
+
+
+async def increment_login_attempts(email: str) -> int:
+    """Increment login attempts for an email."""
+    key = f"login_attempts:{email}"
+    attempts = await token_blacklist.incr(key)
+    await token_blacklist.expire(key, 3600)  # Expire in 1 hour
+    return attempts
+
+
+async def get_login_attempts(email: str) -> int:
+    """Get current login attempts for an email."""
+    key = f"login_attempts:{email}"
+    attempts = await token_blacklist.get(key)
+    return int(attempts) if attempts else 0
+
+
+async def reset_login_attempts(email: str):
+    """Reset login attempts for an email."""
+    key = f"login_attempts:{email}"
+    await token_blacklist.delete(key)

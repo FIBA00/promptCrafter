@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from core.schemas import UserCreateSchema, UserOutSchema
 from db.models import User
 from utility.logger import get_logger
-from core.oauth2 import hash_password
+from auth.oauth2 import hash_password
 from core.custom_error_handlers import (
     UserAlreadyExists,
     UserNotFound,
@@ -20,6 +20,16 @@ lg = get_logger(__file__)
 
 
 class UserService:
+    def validate_password_strength(self, password: str):
+        if len(password) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(char.isdigit() for char in password):
+            raise ValueError("Password must contain at least one digit")
+        if not any(char.isupper() for char in password):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(char.islower() for char in password):
+            raise ValueError("Password must contain at least one lowercase letter")
+
     def create_new_user(self, user_data: UserCreateSchema, db: Session):
         try:
             try:
@@ -32,6 +42,8 @@ class UserService:
 
             # create new user, first conver the shcema to dictionary
             user_data_dict = user_data.model_dump()
+            # Validate password strength
+            self.validate_password_strength(user_data_dict["password"])
             # check if the user has an id with the request
             if not user_data_dict.get("user_id"):
                 user_data_dict["user_id"] = str(uuid.uuid4())
@@ -170,3 +182,60 @@ class UserService:
             raise e
 
         return None
+
+    def store_refresh_token(
+        self, user_id: str, token: str, expires_at: datetime, db: Session
+    ):
+        from db.models import RefreshToken
+        from auth.oauth2 import hash_token
+
+        try:
+            token_hash = hash_token(token)
+            refresh_token = RefreshToken(
+                id=str(uuid.uuid4()),
+                token_hash=token_hash,
+                user_id=user_id,
+                expires_at=expires_at,
+            )
+            db.add(refresh_token)
+            db.commit()
+            db.refresh(refresh_token)
+            return refresh_token.id
+        except Exception as e:
+            db.rollback()
+            lg.error(f"Error storing refresh token: {str(e)}")
+            raise e
+
+    def invalidate_refresh_token(self, token: str, db: Session):
+        from db.models import RefreshToken
+        from auth.oauth2 import verify_token
+
+        try:
+            refresh_tokens = (
+                db.query(RefreshToken)
+                .filter(RefreshToken.expires_at > datetime.now())
+                .all()
+            )
+            for rt in refresh_tokens:
+                if verify_token(token, rt.token_hash):
+                    db.delete(rt)
+                    db.commit()
+                    lg.info(f"Refresh token invalidated for user {rt.user_id}")
+                    return True
+            return False
+        except Exception as e:
+            db.rollback()
+            lg.error(f"Error invalidating refresh token: {str(e)}")
+            raise e
+
+    def invalidate_all_user_refresh_tokens(self, user_id: str, db: Session):
+        from db.models import RefreshToken
+
+        try:
+            db.query(RefreshToken).filter(RefreshToken.user_id == user_id).delete()
+            db.commit()
+            lg.info(f"All refresh tokens invalidated for user {user_id}")
+        except Exception as e:
+            db.rollback()
+            lg.error(f"Error invalidating all refresh tokens: {str(e)}")
+            raise e

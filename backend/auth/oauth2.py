@@ -2,26 +2,20 @@ import uuid
 import bcrypt
 import jwt
 from jwt.exceptions import PyJWTError as JWTError
-from fastapi import Depends, status, HTTPException
-from fastapi.security import OAuth2PasswordBearer, HTTPBearer
-from fastapi.security.http import HTTPAuthorizationCredentials
+from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import URLSafeTimedSerializer
 
 from datetime import datetime, timedelta
 from utility.logger import get_logger
 from core.config import settings
-from core.schemas import TokenData
-from core.custom_error_handlers import (
-    RefreshTokenRequired,
-    InvalidToken,
-    AccssTokenRequired,
-)
-from db.redis import token_blacklist, token_in_blocklist
+
 
 lg = get_logger(__file__)
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login"
+    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login",
+    description="OAuth2 password flow. Use your email as the username and your password to get an access token.",
+    scheme_name="JWT",
 )
 
 
@@ -39,6 +33,16 @@ def hash_password(password: str) -> str:
     except Exception as e:
         lg.error(f"Error hashing password: {str(e)}")
         raise e
+
+
+def hash_token(token: str) -> str:
+    """Hash a token for storage."""
+    return bcrypt.hashpw(token.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_token(token: str, hashed_token: str) -> bool:
+    """Verify a token against its hash."""
+    return bcrypt.checkpw(token.encode("utf-8"), hashed_token.encode("utf-8"))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

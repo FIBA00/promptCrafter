@@ -10,7 +10,7 @@ from core.custom_error_handlers import (
     InvalidToken,
     AccessTokenRequired,
 )
-from db.redis import token_blacklist, token_in_blocklist
+from db.redis import token_in_blocklist
 from auth.oauth2 import decode_access_token
 
 lg = get_logger(__file__)
@@ -71,14 +71,14 @@ def get_access_token(
     token = creds.credentials
     lg.debug(f"Validating access token: {token[:10]}...")
     token_data = decode_access_token(token)
-    if not token_data is not None and "user" in token_data:
+    if token_data is None:
         lg.debug("Token data invalid")
         raise InvalidToken()
 
     jti = token_data.get("jti")
     if jti and token_in_blocklist(jti):
-        lg.debug(f"Token JTO {jti} is in blocklist.")
-        return None
+        lg.debug(f"Token JTI {jti} is in blocklist.")
+        raise InvalidToken()
 
     if token_data.get("refresh", False):
         lg.error("Refresh token used where access token expected.")
@@ -95,14 +95,14 @@ def get_refresh_token(
     token = creds.credentials
 
     token_data = decode_access_token(token)
-    if not token_data is not None and "user" in token_data:
+    if token_data is None:
         lg.debug("Token data invalid")
         raise InvalidToken()
 
     jti = token_data.get("jti")
     if jti and token_in_blocklist(jti):
-        lg.debug(f"Token JTO {jti} is in blocklist.")
-        return None
+        lg.debug(f"Token JTI {jti} is in blocklist.")
+        raise InvalidToken()
 
     lg.debug("Token is valid")
     if not token_data.get("refresh", False):

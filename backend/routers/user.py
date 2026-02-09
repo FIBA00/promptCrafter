@@ -1,10 +1,6 @@
 # user page
-from datetime import timedelta
-from fastapi import (
-    APIRouter,
-    status,
-    Depends,
-)
+from datetime import timedelta, datetime
+from fastapi import APIRouter, status, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 
@@ -12,7 +8,12 @@ from sqlalchemy.orm import Session
 
 # our custom module imports
 from db.database import get_db
-from db.redis import add_jit_to_blocklist
+from db.redis import (
+    add_jit_to_blocklist,
+    increment_login_attempts,
+    get_login_attempts,
+    reset_login_attempts,
+)
 from core.config import settings
 from core.celery_tasks import send_email
 from core.custom_error_handlers import InvalidCredentials, InvalidToken
@@ -22,6 +23,8 @@ from core.schemas import (
     TokenOutSchema,
     EmailModel,
     UserSignupResponse,
+    PasswordResetRequestSchema,
+    PasswordResetSchema,
 )
 from auth.oauth2 import (
     verify_password,
@@ -29,9 +32,10 @@ from auth.oauth2 import (
     decode_access_token,
     create_url_safe_token,
     decode_url_safe_token,
+    hash_password,
 )
 
-from auth.dependencies import get_refresh_token
+from auth.dependencies import get_refresh_token, get_access_token
 from core.custom_error_handlers import UserNotFound
 from utility.logger import get_logger
 from services.user_service import UserService
@@ -117,19 +121,37 @@ def get_user_by_id(user_id: str, db: Session = Depends(dependency=get_db)):
 
 
 @router.post(path="/login", status_code=status.HTTP_200_OK)
-def login(
+async def login(
     user_credentials: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(dependency=get_db),
 ):
+    # Check rate limiting
+    attempts = await get_login_attempts(user_credentials.username)
+    if attempts >= 5:
+        raise HTTPException(
+            status_code=429, detail="Too many login attempts. Try again later."
+        )
+
     # first we need function in the service to verify the user credentials and return the user if valid
     user = uservice.get_user_by_email(email=user_credentials.username, db=db)
 
     if not user:
+        await increment_login_attempts(user_credentials.username)
         raise InvalidCredentials()
+
+    if not user.is_verified:
+        await increment_login_attempts(user_credentials.username)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account not verified"
+        )
 
     # verify the password
     if not verify_password(user_credentials.password, user.password):
+        await increment_login_attempts(user_credentials.username)
         raise InvalidCredentials()
+
+    # Reset attempts on successful login
+    await reset_login_attempts(user_credentials.username)
 
     # second we need access token  generation function in the tools
     access_token = create_access_token(
@@ -151,6 +173,12 @@ def login(
         expiry=timedelta(minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES),
     )
 
+    # Store refresh token
+    expires_at = datetime.now() + timedelta(
+        minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES
+    )
+    uservice.store_refresh_token(user.user_id, refresh_token, expires_at, db)
+
     lg.info(f"User {user.email} logged in successfully")
     return JSONResponse(
         content={
@@ -168,10 +196,10 @@ def get_new_access_token(
 ):
     lg.info("Refreshing access token")
     token_data = decode_access_token(token)
-    if token_data is None or "user" not in token_data:
+    if token_data is None or "user_id" not in token_data:
         raise InvalidToken()
 
-    user_data = token_data["user"]
+    user_data = token_data
     user_id = user_data.get("user_id")
     email = user_data.get("email")
 
@@ -179,28 +207,107 @@ def get_new_access_token(
     if user is None or str(user.user_id) != user_id:
         raise InvalidToken()
 
+    # Invalidate old refresh token
+    uservice.invalidate_refresh_token(token, db)
+
     # Generate new access token
     new_access_token = create_access_token(
-        user_data={"email": email, "user_id": user_id, "role": user.role}
+        user_data={
+            "email": email,
+            "user_id": user_id,
+            "is_admin": user.is_admin,
+            "is_verified": user.is_verified,
+        }
     )
 
-    lg.info(f"New access token generated for user: {email}")
+    # Generate new refresh token
+    new_refresh_token = create_access_token(
+        user_data={
+            "user_id": user_id,
+            "email": email,
+            "is_admin": user.is_admin,
+            "is_verified": user.is_verified,
+        },
+        refresh=True,
+        expiry=timedelta(minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES),
+    )
+
+    # Store new refresh token
+    expires_at = datetime.now() + timedelta(
+        minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES
+    )
+    uservice.store_refresh_token(user_id, new_refresh_token, expires_at, db)
+
+    lg.info(f"New tokens generated for user: {email}")
     return {
         "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer",
     }
 
 
+@router.post("/forgot-password")
+def forgot_password(request: PasswordResetRequestSchema, db: Session = Depends(get_db)):
+    user = uservice.get_user_by_email(request.email, db)
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "If the email exists, a reset link has been sent."}
+
+    reset_token = create_url_safe_token(
+        {"user_id": str(user.user_id), "email": user.email}
+    )
+    reset_link = f"http://{settings.DOMAIN_NAME}/api/{settings.VERSION or 'v1.1'}/user/reset-password?token={reset_token}"
+
+    subject = "Password Reset for PromptCrafter"
+    send_email.delay(
+        recipients=[user.email],
+        subject=subject,
+        template_body={"email": user.email, "link": reset_link},
+        template_name="verify_account.html",  # Reuse template
+    )
+    lg.info(f"Password reset email sent to: {user.email}")
+    return {"message": "If the email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(request: PasswordResetSchema, db: Session = Depends(get_db)):
+    token_data = decode_url_safe_token(request.token)
+    if not token_data:
+        raise InvalidToken()
+
+    user_id = token_data.get("user_id")
+    email = token_data.get("email")
+    user = uservice.get_user_by_email(email, db)
+    if not user or str(user.user_id) != user_id:
+        raise InvalidToken()
+
+    # Validate new password
+    uservice.validate_password_strength(request.new_password)
+
+    # Update password
+    hashed_password = hash_password(request.new_password)
+    uservice.update_user(user=user, user_data={"password": hashed_password}, db=db)
+
+    # Invalidate all tokens
+    uservice.invalidate_all_user_refresh_tokens(user_id, db)
+
+    lg.info(f"Password reset for user: {email}")
+    return {"message": "Password reset successfully."}
+
+
 @router.post(path="/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
-    token: str = Depends(get_new_access_token), db: Session = Depends(dependency=get_db)
+    token: str = Depends(get_access_token), db: Session = Depends(dependency=get_db)
 ):
     lg.info("Logging out user")
     token_data = decode_access_token(token)
-    if token_data is None or "jti" not in token_data:
+    if token_data is None or "jti" not in token_data or "user_id" not in token_data:
         raise InvalidToken()
 
     jti = token_data["jti"]
+    user_id = token_data["user_id"]
     add_jit_to_blocklist(jti)
-    lg.info(f"Token with JTI {jti} added to blocklist")
+    # Invalidate all refresh tokens for the user
+    uservice.invalidate_all_user_refresh_tokens(user_id, db)
+    lg.info(f"User {user_id} logged out, tokens invalidated")
     return JSONResponse(content={"message": "Logout successful"}, status_code=204)

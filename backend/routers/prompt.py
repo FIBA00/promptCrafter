@@ -14,7 +14,7 @@ from typing import List
 from fastapi import APIRouter, status, Depends, HTTPException
 
 from core.schemas import PromptSchema, PromptSchemaOutput
-from core.oauth2 import get_current_user
+from auth.dependencies import get_current_user
 from core.custom_error_handlers import PromptNotModified, PromptsNotFoundForCurrentUser
 from sqlalchemy.orm import Session
 from db.database import get_db
