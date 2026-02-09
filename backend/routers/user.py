@@ -61,3 +61,9 @@ def login(
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post(path="/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(user_id: str, db: Session = Depends(dependency=get_db)):
+    # implement token blacklisting on the server side for added security
+    pass

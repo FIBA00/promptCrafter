@@ -29,6 +29,13 @@ class PromptNotModified(PromptCrafterException):
     pass
 
 
+class PromptsNotFoundForCurrentUser(PromptCrafterException):
+    """
+    Exception raised when no prompts are found for the current user."""
+
+    pass
+
+
 class InvalidToken(PromptCrafterException):
     """
     Exception raised when an invalid token is provided."""
@@ -261,6 +268,19 @@ def register_all_errors(app: FastAPI):
             },
         ),
     )
+
+    app.add_exception_handler(
+        PromptsNotFoundForCurrentUser,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "No prompts found for the current user.",
+                "error_code": "prompts_not_found_for_user",
+                "resolution": "No prompts were found for the current user. If you haven't created any prompts yet, start by creating a new prompt. If you believe this is an error, please contact support for assistance.",
+            },
+        ),
+    )
+
     app.add_exception_handler(Exception, global_exception_handler)
 
     @app.exception_handler(500)
