@@ -1,6 +1,7 @@
 import uuid
 import bcrypt
-from jose import jwt, JWTError
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 
@@ -84,7 +85,7 @@ def create_access_token(
         payload["refresh"] = refresh  # flag to indicate if this is a refresh token
 
         token = jwt.encode(
-            claims=payload,
+            payload=payload,
             key=settings.JWT_SECRET_KEY,
             algorithm=settings.JWT_ALGORITHM,
         )
@@ -106,7 +107,7 @@ def decode_access_token(token: str) -> dict:
     """
     try:
         token_data = jwt.decode(
-            token=token,
+            jwt=token,
             key=settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )

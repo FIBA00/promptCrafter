@@ -42,6 +42,11 @@ class UserCreateSchema(BaseModel):
     password: str
 
 
+class UserLoginSchema(BaseModel):
+    email: str
+    password: str
+
+
 class UserOutSchema(BaseModel):
     user_id: uuid.UUID
     email: str

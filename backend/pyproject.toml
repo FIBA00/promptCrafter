@@ -22,7 +22,8 @@ dependencies = [
     "fastapi-admin>=1.0.4",
     "fastapi-mail>=1.6.1",
     "email-validator>=2.3.0",
-    "python-jose",
+    "pyjwt>=2.8.0",
     "fastapi-cache2[redis]",
     "fastapi-cache>=0.1.0",
+    "sqladmin",
 ]
