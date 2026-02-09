@@ -22,6 +22,20 @@ class PromptCrafterException(Exception):
     pass
 
 
+class PromptNotModified(PromptCrafterException):
+    """
+    Exception raised when a prompt modification request does not result in any changes."""
+
+    pass
+
+
+class PromptsNotFoundForCurrentUser(PromptCrafterException):
+    """
+    Exception raised when no prompts are found for the current user."""
+
+    pass
+
+
 class InvalidToken(PromptCrafterException):
     """
     Exception raised when an invalid token is provided."""
@@ -96,6 +110,13 @@ class AccountNotVerified(PromptCrafterException):
     """
     Exception raised when a user account is not verified
     """
+
+    pass
+
+
+class RateLimitExceeded(PromptCrafterException):
+    """
+    Exception raised when a user exceeds their daily token limit."""
 
     pass
 
@@ -240,6 +261,41 @@ def register_all_errors(app: FastAPI):
                 "message": "Account not verified.",
                 "error_code": "account_not_verified",
                 "resolution": "Verify your account by requesting verify email.",
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        RateLimitExceeded,
+        create_exception_handler(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            initial_detail={
+                "message": "Daily token limit exceeded.",
+                "error_code": "rate_limit_exceeded",
+                "resolution": "You have used all your AI tokens for today. Quota resets daily.",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        PromptNotModified,
+        create_exception_handler(
+            status_code=status.HTTP_304_NOT_MODIFIED,
+            initial_detail={
+                "message": "Prompt not modified.",
+                "error_code": "prompt_not_modified",
+                "resolution": "The prompt was not modified because the prompt has missing 'role' . Please make changes to the prompt data and try again.",
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        PromptsNotFoundForCurrentUser,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "No prompts found for the current user.",
+                "error_code": "prompts_not_found_for_user",
+                "resolution": "No prompts were found for the current user. If you haven't created any prompts yet, start by creating a new prompt. If you believe this is an error, please contact support for assistance.",
             },
         ),
     )

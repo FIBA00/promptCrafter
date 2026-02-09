@@ -1,7 +1,7 @@
 import uuid
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from pydantic import EmailStr
 
 
 from core.schemas import UserCreateSchema, UserOutSchema
@@ -12,7 +12,9 @@ from core.custom_error_handlers import (
     UserAlreadyExists,
     UserNotFound,
     InvalidCredentials,
+    RateLimitExceeded,
 )
+from pydantic import EmailStr
 
 lg = get_logger(__file__)
 
@@ -20,6 +22,14 @@ lg = get_logger(__file__)
 class UserService:
     def create_new_user(self, user_data: UserCreateSchema, db: Session):
         try:
+            try:
+                user_exists = self.get_user_by_email(email=user_data.email, db=db)
+                if user_exists:
+                    raise UserAlreadyExists()
+            except UserNotFound:
+                # User does not exist, which is what we want for signup
+                pass
+
             # create new user, first conver the shcema to dictionary
             user_data_dict = user_data.model_dump()
             # check if the user has an id with the request
@@ -96,5 +106,67 @@ class UserService:
     def delete_user(self, email: str, db: Session):
         return None
 
-    def update_user(self, email: str, db: Session):
+    def check_daily_limit(self, db: Session, user_id: str, cost: int = 1) -> bool:
+        """
+        Check if user has enough tokens for the request.
+        Resets quota if it's a new day.
+        Raises RateLimitExceeded if not enough tokens.
+        """
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if not user:
+                raise UserNotFound
+
+            # Check date
+            today = datetime.utcnow().date()
+            if user.last_token_reset != today:
+                # Reset
+                lg.debug(f"Resetting tokens for user {user_id}")
+                user.tokens_used_today = 0
+                user.last_token_reset = today
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+
+            if user.tokens_used_today + cost > user.daily_token_limit:
+                lg.warning(f"User {user_id} exceeded daily token limit")
+                raise RateLimitExceeded
+
+            # Deduct (add usage)
+            user.tokens_used_today += cost
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+            lg.debug(
+                f"User {user_id} used {cost} tokens. Balance: {user.daily_token_limit - user.tokens_used_today}"
+            )
+            return True
+
+        except RateLimitExceeded as e:
+            raise e
+        except Exception as e:
+            lg.error(f"Error checking daily limit: {str(e)}")
+            raise e
+
+    def update_user(self, user: User, user_data: dict, db: Session):
+        lg.info(f"Updating user with email: {user.email}")
+        # Update user fields based on provided data
+        for key, value in user_data.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+        try:
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            lg.info(f"User updated successfully: {user.email}")
+            return UserOutSchema.model_validate(user)
+        except SQLAlchemyError as e:
+            db.rollback()
+            lg.error(f"Database Error updating user: {str(e)}")
+            raise e
+        except Exception as e:
+            lg.error(f"Unexpected Error updating user: {str(e)}")
+            raise e
+
         return None

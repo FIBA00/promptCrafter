@@ -155,7 +155,7 @@ class LogManager:
         self.log_file: str = os.path.join(LOG_DIR, f"{script_name}.log")
         # Create or retrieve a lgwith the script name
         self.logger = getLogger(script_name)
-        self.logger.setLevel(DEBUG)  # Set default log level to DEBUG for all handlers
+        self.logger.setLevel(DEBUG)  # Set default log level to INFO for all handlers
         self.logger.propagate = False  # Prevent logging to root logger (double logging)
         # Prevent duplicate handlers if lgalready exists
         if not self.logger.handlers:

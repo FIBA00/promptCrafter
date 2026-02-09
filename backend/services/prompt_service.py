@@ -24,11 +24,9 @@ class PromptService:
             prompt_data_dict = prompt_data.model_dump()
 
             # We must use the SQLAlchemy Model (Prompts), not the Pydantic Schema
-            # Ensure prompt_id is a string
-            if not prompt_data_dict.get("prompt_id"):
-                prompt_data_dict["prompt_id"] = str(uuid.uuid4())
-            elif isinstance(prompt_data_dict["prompt_id"], uuid.UUID):
-                prompt_data_dict["prompt_id"] = str(prompt_data_dict["prompt_id"])
+            # Force generation of a new ID for creation to avoid collisions with
+            # default/placeholder IDs sent by clients (e.g. Swagger UI defaulting to 3fa8...)
+            prompt_data_dict["prompt_id"] = str(uuid.uuid4())
 
             # Handle author_id
             if author_id:
@@ -60,10 +58,12 @@ class PromptService:
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
 
-    def get_all_prompt(self, db: Session):
+    def get_all_prompt(self, user_id: str, db: Session):
         lg.debug("Getting all the prompts.")
         try:
-            all_prompts = db.query(Prompts).limit(100).all()
+            all_prompts = (
+                db.query(Prompts).filter(Prompts.author_id == user_id).limit(100).all()
+            )
             if not all_prompts:
                 lg.debug("Prompts table is empty - no prompts found in the database.")
 
@@ -82,18 +82,23 @@ class PromptService:
 
         return None
 
-    def get_all_prompt_by_id(self, prompt_id: str, db: Session) -> Prompts | None:
+    def get_prompt_by_id(
+        self, user_id: str, prompt_id: str, db: Session
+    ) -> Prompts | None:
         lg.debug("Getting all the prompts.")
         try:
-            prompts_by_id = (
-                db.query(Prompts).filter(Prompts.prompt_id == prompt_id).first()
+            prompt_by_id = (
+                db.query(Prompts)
+                .filter(Prompts.author_id == user_id)
+                .filter(Prompts.prompt_id == prompt_id)
+                .first()
             )
-            if not prompts_by_id:
+            if not prompt_by_id:
                 lg.debug("Prompt not found in the database.")
                 raise PromptNotFound()
 
-            lg.info("Successfully retrieved prompts from database.")
-            return prompts_by_id
+            lg.info("Successfully retrieved prompt from database.")
+            return prompt_by_id
         except SQLAlchemyError as e:
             # This catches ANY database error (connection lost, constraint violation, etc.)
             db.rollback()  # CRITICAL: Reset the session so it's clean for the next request
@@ -105,12 +110,29 @@ class PromptService:
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
 
-    def update_prompt(self, prompt_id: str, db: Session):
-        lg.debug(f"Updating  prompt: {prompt_id}")
+    def delete_prompt(self, user_id: str, prompt_id: str, db: Session) -> bool:
+        try:
+            lg.debug(f"Deleting prompt: {prompt_id}")
+            prompt = self.get_prompt_by_id(user_id=user_id, prompt_id=prompt_id, db=db)
+            if prompt:
+                db.delete(prompt)
+                db.commit()
+                lg.info(f"Successfully deleted prompt: {prompt_id}")
+                return True
+        except SQLAlchemyError as e:
+            # This catches ANY database error (connection lost, constraint violation, etc.)
+            db.rollback()  # CRITICAL: Reset the session so it's clean for the next request
+            lg.error(f"Database Error deleting prompt: {str(e)}")
+            raise e  # Re-raise it so the router knows something went wrong
+
+        except Exception as e:
+            # This catches any other unexpected Python error (like a bug in our code)
+            lg.error(f"Unexpected Error in delete_prompt: {str(e)}")
+            raise e
 
         return None
 
-    def delete_prompt(self, prompt_id: str, db: Session) -> bool:
-        lg.debug(f"Deleting prompt: {prompt_id}")
+    def update_prompt(self, user_id: str, prompt_id: str, db: Session):
+        lg.debug(f"Updating  prompt: {prompt_id}")
 
         return None

@@ -1,7 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import List, Optional
 import uuid
+
+# TODO: Revert to EmailStr when email-validator is installed
+# from pydantic import EmailStr
+EmailStr = str
 
 
 class PromptSchema(BaseModel):
@@ -10,14 +14,14 @@ class PromptSchema(BaseModel):
     prompt_id: Optional[uuid.UUID] = None
     author_id: Optional[uuid.UUID] = None
     created_at: Optional[datetime] = None
-    tags: List[str] = []
 
     # the prompt
     title: Optional[str] = None
     role: Optional[str] = None
-    task: str
-    constraints: Optional[str] = None
+    task: Optional[str] = None
     output: Optional[str] = None
+    tags: List[str] = []
+    constraints: Optional[str] = None
     personality: Optional[str] = None
 
     class Config:
@@ -28,6 +32,11 @@ class PromptSchemaOutput(BaseModel):
     # so this is the response schema for our modified prompt
     structured_prompt: str
     natural_prompt: str
+    # we need to return the prompt id and author id to link the prompt and structured prompt together, but from the PromptSchema
+    details: PromptSchema
+
+    class Config:
+        from_attributes = True
 
 
 class UserPromptsSchema(PromptSchema):
@@ -58,6 +67,11 @@ class UserOutSchema(BaseModel):
         from_attributes = True
 
 
+class UserSignupResponse(BaseModel):
+    message: str
+    user: UserOutSchema
+
+
 class TokenData(BaseModel):
     user_id: Optional[str] = None
     is_admin: bool = False
@@ -67,3 +81,7 @@ class TokenData(BaseModel):
 class TokenOutSchema(BaseModel):
     access_token: str
     token_type: str
+
+
+class EmailModel(BaseModel):
+    emails: List[EmailStr]

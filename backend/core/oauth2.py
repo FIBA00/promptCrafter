@@ -4,6 +4,7 @@ import jwt
 from jwt.exceptions import PyJWTError as JWTError
 from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
+from itsdangerous import URLSafeTimedSerializer
 
 from datetime import datetime, timedelta
 from utility.logger import get_logger
@@ -161,3 +162,22 @@ def get_current_admin_user(
             status_code=status.HTTP_403_FORBIDDEN, detail="User is not an admin"
         )
     return current_user
+
+
+serializer = URLSafeTimedSerializer(
+    secret_key=settings.JWT_SECRET_KEY, salt="email-configuration"
+)
+
+
+def create_url_safe_token(data: dict):
+    token = serializer.dumps(data)
+    return token
+
+
+def decode_url_safe_token(token: str, max_age: int = 3600) -> dict | None:
+    try:
+        data = serializer.loads(token, salt="email-configuration", max_age=max_age)
+        return data
+    except Exception as e:
+        lg.error(f"URL safe token decoding error: {e}")
+        return None

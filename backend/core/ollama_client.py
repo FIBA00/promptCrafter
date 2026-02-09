@@ -2,7 +2,7 @@ import os
 import json
 import requests
 from dotenv import load_dotenv
-from formatters import clean_json_block
+from .formatters import clean_json_block
 
 # Load environment variables
 load_dotenv()

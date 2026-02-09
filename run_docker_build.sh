@@ -9,6 +9,12 @@ docker rm -f prometheus grafana postgres-exporter promptcrafter_api promptcrafte
 docker compose down
 docker compose up --build -d
 
+echo "Waiting for services to settle..."
+sleep 5
+
+echo "Running Migrations..."
+docker compose exec api alembic upgrade head
+
 echo ""
 echo "-------------------------------------------------------------"
 echo "Service Status:"

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, TIMESTAMP, Boolean
+from sqlalchemy import Column, String, ForeignKey, TIMESTAMP, Boolean, Integer, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import DateTime
 from sqlalchemy.sql.expression import text
@@ -60,6 +60,11 @@ class User(Base):
     created_at = Column(
         TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
     )
+
+    # Rate Limiting
+    daily_token_limit = Column(Integer, nullable=False, server_default=text("10"))
+    tokens_used_today = Column(Integer, nullable=False, server_default=text("0"))
+    last_token_reset = Column(Date, nullable=True)
 
     # Relationships
     prompts = relationship("Prompts", back_populates="author")
