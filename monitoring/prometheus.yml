@@ -4,9 +4,10 @@ global:
 
 scrape_configs:
     - job_name: "fastapi-app"
-      # The hostname 'api' comes from the service name in docker-compose-dev.yml
+      # Scrape the main app on port 8000.
+      # 'api' works if backend is in Docker. 'host.docker.internal' works if backend is on host (run_local.sh).
       static_configs:
-          - targets: ["api:8000"]
+          - targets: ["api:8000", "host.docker.internal:8000"]
 
     - job_name: "postgres-exporter"
       # The hostname 'postgres-exporter' comes from the service name in docker-compose.monitoring.yml

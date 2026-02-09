@@ -1,12 +1,19 @@
 import uuid
 import bcrypt
 from jose import jwt, JWTError
+from fastapi import Depends, status, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 
 from datetime import datetime, timedelta
-from .logger import get_logger
+from utility.logger import get_logger
 from core.config import settings
+from core.schemas import TokenData
 
 lg = get_logger(__file__)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login"
+)
 
 
 def hash_password(password: str) -> str:
@@ -62,8 +69,12 @@ def create_access_token(
         # construct the payload with user data, we can include user_id, email,
         # and any other relevant information
 
-        payload["user_id"] = user_data.get("user_id", user_data.get("user_id"))
-        payload["email"] = user_data.get("email", user_data.get("email"))
+        payload["user_id"] = user_data.get("user_id")
+        payload["email"] = user_data.get("email")
+        # Add roles to payload
+        payload["is_admin"] = user_data.get("is_admin", False)
+        payload["is_verified"] = user_data.get("is_verified", False)
+
         payload["exp"] = datetime.now() + (
             expiry
             if expiry
@@ -106,3 +117,46 @@ def decode_access_token(token: str) -> dict:
     except Exception as e:
         lg.error(f"Unexpected error decoding access token: {str(e)}")
         raise e
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = decode_access_token(token)
+        user_id: str = payload.get("user_id")
+        if user_id is None:
+            raise credentials_exception
+
+        token_data = TokenData(
+            user_id=user_id,
+            is_admin=payload.get("is_admin", False),
+            is_verified=payload.get("is_verified", False),
+        )
+        return token_data
+    except JWTError:
+        raise credentials_exception
+
+
+def get_current_active_user(
+    current_user: TokenData = Depends(get_current_user),
+) -> TokenData:
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User is not verified"
+        )
+    return current_user
+
+
+def get_current_admin_user(
+    current_user: TokenData = Depends(get_current_user),
+) -> TokenData:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User is not an admin"
+        )
+    return current_user

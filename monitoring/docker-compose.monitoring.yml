@@ -10,6 +10,8 @@ services:
         command:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         ports:
             - "9090:9090"
         networks:
@@ -22,6 +24,9 @@ services:
         volumes:
             - grafana_data:/var/lib/grafana
             - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+            # Dashboard provisioning
+            - ./grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+            - ./fastapi_dashboard.json:/var/lib/grafana/dashboards/fastapi_dashboard.json
         environment:
             - GF_SECURITY_ADMIN_USER=admin
             - GF_SECURITY_ADMIN_PASSWORD=admin

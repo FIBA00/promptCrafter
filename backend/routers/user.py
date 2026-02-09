@@ -46,6 +46,13 @@ def login(
         raise InvalidCredentials()
 
     # second we need access token  generation function in the tools
-    access_token = create_access_token(user_data={"user_id": user.user_id})
+    access_token = create_access_token(
+        user_data={
+            "user_id": user.user_id,
+            "email": user.email,
+            "is_admin": user.is_admin,
+            "is_verified": user.is_verified,
+        }
+    )
 
     return {"access_token": access_token, "token_type": "bearer"}

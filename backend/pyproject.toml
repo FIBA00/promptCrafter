@@ -23,4 +23,5 @@ dependencies = [
     "fastapi-mail>=1.6.1",
     "email-validator>=2.3.0",
     "python-jose",
+    "fastapi-cache2[redis]",
 ]
