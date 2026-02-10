@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from core.schemas import UserCreateSchema, UserOutSchema
 from db.models import User
 from utility.logger import get_logger
-from auth.oauth2 import hash_password
+from auth.oauth2 import hash_password, create_access_token
 from core.custom_error_handlers import (
     UserAlreadyExists,
     UserNotFound,
@@ -16,6 +16,13 @@ from core.custom_error_handlers import (
     WeakPasswordError,
 )
 from pydantic import EmailStr
+from core.config import settings
+from google_auth_oauthlib.flow import Flow
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from fastapi import HTTPException
+from datetime import timedelta
+import os
 
 lg = get_logger(__file__)
 
@@ -245,4 +252,149 @@ class UserService:
         except Exception as e:
             db.rollback()
             lg.error(f"Error invalidating all refresh tokens: {str(e)}")
+            raise e
+
+    def get_google_login_url(self):
+        client_config = {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+            }
+        }
+
+        flow = Flow.from_client_config(
+            client_config=client_config,
+            scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+            ],
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
+        )
+
+        authorization_url, _ = flow.authorization_url(
+            access_type="offline", include_granted_scopes="true"
+        )
+        return authorization_url
+
+    def process_google_auth(self, request_url: str, db: Session):
+        # Allow http for local testing
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+        client_config = {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+            }
+        }
+
+        flow = Flow.from_client_config(
+            client_config=client_config,
+            scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+            ],
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
+        )
+
+        try:
+            flow.fetch_token(authorization_response=request_url)
+        except Exception as e:
+            lg.error(f"Error fetching token from Google: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail="Authorization failed. Ensure you are approving the request.",
+            )
+
+        credentials = flow.credentials
+
+        try:
+            id_info = id_token.verify_oauth2_token(
+                credentials.id_token,
+                google_requests.Request(),
+                settings.GOOGLE_CLIENT_ID,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid token: {str(e)}")
+
+        email = id_info.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Email not provided by Google")
+
+        try:
+            # Check if user exists using direct query to avoid exception flow control
+            user = db.query(User).filter(User.email == email).first()
+
+            if not user:
+                # Create new user
+                username = id_info.get("name", email.split("@")[0])
+                new_user = User(
+                    user_id=str(uuid.uuid4()),
+                    username=username,
+                    password=hash_password("oauth_dummy"),
+                    email=email,
+                    is_verified=True,
+                    oauth_provider="google",
+                    oauth_id=id_info.get("sub"),
+                )
+                db.add(new_user)
+                db.commit()
+                db.refresh(new_user)
+                user = new_user
+            else:
+                # Update existing user to verified if not
+                if not user.is_verified:
+                    user.is_verified = True
+                    user.oauth_provider = "google"
+                    user.oauth_id = id_info.get("sub")
+                    db.commit()
+                    db.refresh(user)
+
+            # Create tokens
+            access_token = create_access_token(
+                user_data={
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "is_admin": user.is_admin,
+                    "is_verified": user.is_verified,
+                }
+            )
+            refresh_token = create_access_token(
+                user_data={
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "is_admin": user.is_admin,
+                    "is_verified": user.is_verified,
+                },
+                refresh=True,
+                expiry=timedelta(minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES),
+            )
+
+            # Store refresh token
+            expires_at = datetime.now() + timedelta(
+                minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES
+            )
+            self.store_refresh_token(user.user_id, refresh_token, expires_at, db)
+
+            lg.info(f"User {user.email} logged in via Google")
+            return {
+                "message": "Login Successful",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": {"email": user.email, "user_id": str(user.user_id)},
+            }
+
+        except SQLAlchemyError as e:
+            db.rollback()
+            lg.error(f"Database Error processing google auth: {str(e)}")
+            raise e
+        except Exception as e:
+            lg.error(f"Unexpected Error processing google auth: {str(e)}")
             raise e
