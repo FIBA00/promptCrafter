@@ -16,18 +16,18 @@ from auth.oauth2 import decode_access_token
 
 lg = get_logger(__file__)
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login"
-)
+security = HTTPBearer()
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
+def get_current_user(
+    creds: HTTPAuthorizationCredentials = Depends(security),
+) -> TokenData:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
+    token = creds.credentials
     try:
         payload = decode_access_token(token)
         user_id: str = payload.get("user_id")
