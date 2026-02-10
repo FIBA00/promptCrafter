@@ -2,19 +2,20 @@ import uuid
 import bcrypt
 import jwt
 from jwt.exceptions import PyJWTError as JWTError
-from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import URLSafeTimedSerializer
 
 from datetime import datetime, timedelta
 from utility.logger import get_logger
 from core.config import settings
-from core.schemas import TokenData
+
 
 lg = get_logger(__file__)
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login"
+    tokenUrl=f"/api/{settings.VERSION or 'v1.1'}/user/login",
+    description="OAuth2 password flow. Use your email as the username and your password to get an access token.",
+    scheme_name="JWT",
 )
 
 
@@ -32,6 +33,18 @@ def hash_password(password: str) -> str:
     except Exception as e:
         lg.error(f"Error hashing password: {str(e)}")
         raise e
+
+
+def hash_token(token: str) -> str:
+    """Hash a token for storage."""
+    truncated_token = token.encode("utf-8")[:72]
+    return bcrypt.hashpw(truncated_token, bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_token(token: str, hashed_token: str) -> bool:
+    """Verify a token against its hash."""
+    truncated_token = token.encode("utf-8")[:72]
+    return bcrypt.checkpw(truncated_token, hashed_token.encode("utf-8"))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -119,49 +132,6 @@ def decode_access_token(token: str) -> dict:
     except Exception as e:
         lg.error(f"Unexpected error decoding access token: {str(e)}")
         raise e
-
-
-def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = decode_access_token(token)
-        user_id: str = payload.get("user_id")
-        if user_id is None:
-            raise credentials_exception
-
-        token_data = TokenData(
-            user_id=user_id,
-            is_admin=payload.get("is_admin", False),
-            is_verified=payload.get("is_verified", False),
-        )
-        return token_data
-    except JWTError:
-        raise credentials_exception
-
-
-def get_current_active_user(
-    current_user: TokenData = Depends(get_current_user),
-) -> TokenData:
-    if not current_user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User is not verified"
-        )
-    return current_user
-
-
-def get_current_admin_user(
-    current_user: TokenData = Depends(get_current_user),
-) -> TokenData:
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User is not an admin"
-        )
-    return current_user
 
 
 serializer = URLSafeTimedSerializer(

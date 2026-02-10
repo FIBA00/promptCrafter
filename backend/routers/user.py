@@ -1,36 +1,19 @@
 # user page
-from fastapi import (
-    APIRouter,
-    status,
-    Depends,
-)
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
+from datetime import timedelta, datetime
+from fastapi import APIRouter, status, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from sqlalchemy.orm import Session
 
+# our custom module imports
 from db.database import get_db
-from core.schemas import (
-    UserCreateSchema,
-    UserOutSchema,
-    TokenOutSchema,
-    EmailModel,
-    UserSignupResponse,
-)
+from db.redis import add_jit_to_blocklist
 from core.config import settings
-from core.celery_tasks import send_email
-from core.custom_error_handlers import InvalidCredentials
-from core.oauth2 import (
-    verify_password,
-    create_access_token,
-    create_url_safe_token,
-    decode_url_safe_token,
-)
-from core.custom_error_handlers import (
-    UserNotFound,
-)
+from core.custom_error_handlers import InvalidToken
+from core.schemas import UserOutSchema
+from auth.oauth2 import create_access_token, decode_access_token
 
-
+from auth.dependencies import get_refresh_token, get_access_token
 from utility.logger import get_logger
 from services.user_service import UserService
 
@@ -41,71 +24,7 @@ uservice = UserService()
 lg = get_logger(script_path=__file__)
 
 
-@router.post("/send_mail")
-async def send_email_to_user(emails: EmailModel):
-    lg.info(f"Sending test email to: {emails}")
-    subject = "Welcome to our app"
-    send_email.delay(
-        recipients=emails.emails,
-        subject=subject,
-        template_body={
-            "email": emails.emails[0],
-            "link": f"http://{settings.DOMAIN_NAME}",
-        },
-        template_name="verify_account.html",
-    )
-    return {"message": "Emails sent successfully"}
-
-
-@router.post(
-    path="/signup",
-    status_code=status.HTTP_201_CREATED,
-    response_model=UserSignupResponse,
-)
-def create_user(user_data: UserCreateSchema, db: Session = Depends(dependency=get_db)):
-    new_user = uservice.create_new_user(user_data=user_data, db=db)
-    signup_token = create_url_safe_token(
-        {"user_id": str(new_user.user_id), "email": new_user.email}
-    )
-    verification_link = f"http://{settings.DOMAIN_NAME}/api/{settings.VERSION or 'v1.1'}/user/verify_email?token={signup_token}"
-
-    subject = "Verify your email for PromptCrafter"
-    send_email.delay(
-        recipients=[new_user.email],
-        subject=subject,
-        template_body={"email": new_user.email, "link": verification_link},
-        template_name="verify_account.html",
-    )
-    lg.info(
-        f"Verification email sent to: {new_user.email} with link: {verification_link}"
-    )
-    return {
-        "message": "User created successfully, Please check your email for verification",
-        "user": new_user,
-    }
-
-
-@router.get("/verify_email", status_code=status.HTTP_200_OK)
-def verify_user_account(token: str, session: Session = Depends(get_db)):
-
-    token_data = decode_url_safe_token(token)
-    user_email = token_data.get("email") if token_data else None
-    if user_email:
-        user = uservice.get_user_by_email(user_email, db=session)
-        if not user:
-            raise UserNotFound()
-
-        uservice.update_user(user=user, user_data={"is_verified": True}, db=session)
-        lg.info(f"User account verified: {user_email}")
-
-        return JSONResponse(
-            content={"message": "Account verified successfully."},
-            status_code=status.HTTP_200_OK,
-        )
-    return JSONResponse(
-        content={"message": "error occured during verification"},
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
+# main routes
 
 
 @router.post(path="/id/{user_id}", response_model=UserOutSchema)
@@ -114,34 +33,87 @@ def get_user_by_id(user_id: str, db: Session = Depends(dependency=get_db)):
     return user
 
 
-@router.post(path="/login", response_model=TokenOutSchema)
-def login(
-    user_credentials: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(dependency=get_db),
+@router.get(path="/refresh", status_code=status.HTTP_200_OK)
+def get_new_access_token(
+    token: str = Depends(get_refresh_token), db: Session = Depends(get_db)
 ):
-    # first we need function in the service to verify the user credentials and return the user if valid
-    user = uservice.get_user_by_email(email=user_credentials.username, db=db)
-    if not user:
-        raise InvalidCredentials()
+    lg.info("Refreshing access token")
+    token_data = decode_access_token(token)
+    if token_data is None or "user_id" not in token_data:
+        raise InvalidToken()
 
-    # verify the password
-    if not verify_password(user_credentials.password, user.password):
-        raise InvalidCredentials()
+    user_data = token_data
+    user_id = user_data.get("user_id")
+    email = user_data.get("email")
 
-    # second we need access token  generation function in the tools
-    access_token = create_access_token(
+    user = uservice.get_user_by_email(email=email, db=db)
+    if user is None or str(user.user_id) != user_id:
+        raise InvalidToken()
+
+    # Invalidate old refresh token
+    uservice.invalidate_refresh_token(token, db)
+
+    # Generate new access token
+    new_access_token = create_access_token(
         user_data={
-            "user_id": user.user_id,
-            "email": user.email,
+            "email": email,
+            "user_id": user_id,
             "is_admin": user.is_admin,
             "is_verified": user.is_verified,
         }
     )
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Generate new refresh token
+    new_refresh_token = create_access_token(
+        user_data={
+            "user_id": user_id,
+            "email": email,
+            "is_admin": user.is_admin,
+            "is_verified": user.is_verified,
+        },
+        refresh=True,
+        expiry=timedelta(minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES),
+    )
+
+    # Store new refresh token
+    expires_at = datetime.now() + timedelta(
+        minutes=settings.JWT_REFRESH_TOKEN_EXPIRY_MINUTES
+    )
+    uservice.store_refresh_token(user_id, new_refresh_token, expires_at, db)
+
+    lg.info(f"New tokens generated for user: {email}")
+    return {
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
+    }
 
 
 @router.post(path="/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(user_id: str, db: Session = Depends(dependency=get_db)):
-    # implement token blacklisting on the server side for added security
-    pass
+async def logout(
+    token: str = Depends(get_access_token), db: Session = Depends(dependency=get_db)
+):
+    lg.info("Logging out user")
+    token_data = decode_access_token(token)
+    if token_data is None or "jti" not in token_data or "user_id" not in token_data:
+        raise InvalidToken()
+
+    jti = token_data["jti"]
+    user_id = token_data["user_id"]
+    await add_jit_to_blocklist(jti)
+    # Invalidate all refresh tokens for the user
+    uservice.invalidate_all_user_refresh_tokens(user_id, db)
+    lg.info(f"User {user_id} logged out, tokens invalidated")
+    return JSONResponse(content={"message": "Logout successful"}, status_code=204)
+
+
+@router.get("/login/google")
+def login_google():
+    authorization_url = uservice.get_google_login_url()
+    return RedirectResponse(authorization_url)
+
+
+@router.get("/auth/google")
+def auth_google(request: Request, db: Session = Depends(get_db)):
+    result = uservice.process_google_auth(str(request.url), db)
+    return JSONResponse(content=result)

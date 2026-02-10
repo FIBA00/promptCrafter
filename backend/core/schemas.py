@@ -85,3 +85,12 @@ class TokenOutSchema(BaseModel):
 
 class EmailModel(BaseModel):
     emails: List[EmailStr]
+
+
+class PasswordResetRequestSchema(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetSchema(BaseModel):
+    token: str
+    new_password: str

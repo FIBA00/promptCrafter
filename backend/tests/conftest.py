@@ -23,7 +23,7 @@ from main import app
 from db.database import get_db, Base
 from db.models import User
 from core.config import settings
-from core.oauth2 import create_access_token, hash_password
+from auth.oauth2 import create_access_token, hash_password
 
 # 1. Setup Test Database URL
 # We replace the DB name in the connection string to point to our test DB

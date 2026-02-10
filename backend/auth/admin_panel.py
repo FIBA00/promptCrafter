@@ -2,8 +2,12 @@ from sqladmin import ModelView
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
+from auth.oauth2 import (
+    verify_password,
+    create_access_token,
+    decode_access_token,
+)
 from db.models import User, Prompts, StructuredPrompts
-from core.oauth2 import verify_password, create_access_token, decode_access_token
 from db.database import SessionLocal
 from utility.logger import get_logger
 

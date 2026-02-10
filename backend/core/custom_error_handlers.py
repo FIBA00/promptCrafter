@@ -50,7 +50,7 @@ class RevokedToken(PromptCrafterException):
     pass
 
 
-class AccssTokenRequired(PromptCrafterException):
+class AccessTokenRequired(PromptCrafterException):
     """
     Exception raised when an access token is required but missing."""
 
@@ -95,6 +95,13 @@ class UserNotFound(PromptCrafterException):
 class InsufficientPermissions(PromptCrafterException):
     """
     Exception raised when a user lacks the necessary permissions."""
+
+    pass
+
+
+class WeakPasswordError(PromptCrafterException):
+    """
+    Exception raised when a password does not meet strength requirements."""
 
     pass
 
@@ -183,7 +190,7 @@ def register_all_errors(app: FastAPI):
     )
 
     app.add_exception_handler(
-        AccssTokenRequired,
+        AccessTokenRequired,
         create_exception_handler(
             status_code=status.HTTP_401_UNAUTHORIZED,
             initial_detail={
@@ -276,6 +283,19 @@ def register_all_errors(app: FastAPI):
             },
         ),
     )
+
+    app.add_exception_handler(
+        WeakPasswordError,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "Password does not meet strength requirements.",
+                "error_code": "weak_password",
+                "resolution": "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one digit.",
+            },
+        ),
+    )
+
     app.add_exception_handler(
         PromptNotModified,
         create_exception_handler(

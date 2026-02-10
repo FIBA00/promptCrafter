@@ -6,24 +6,23 @@ RESTful Prompt restructing app
 
 import os
 import sys
-from typing import Any
 
 # Add the directory containing this file to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from sqladmin import Admin
-from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
+from sqladmin import Admin
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from routers import prompt, user
 from core.config import settings
 from core.middleware import register_middleware
 from core.custom_error_handlers import register_all_errors
-from core.admin_panel import UserAdmin, PromptAdmin, StructuredPromptAdmin, AdminAuth
+from auth.admin_panel import UserAdmin, PromptAdmin, StructuredPromptAdmin, AdminAuth
 
 from db.database import engine
 from utility.logger import get_logger
