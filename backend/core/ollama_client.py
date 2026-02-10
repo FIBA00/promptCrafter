@@ -2,28 +2,10 @@ import os
 import re
 import json
 import requests
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-
-"""
-Previous attemps
-
-comand = curl http://127.0.0.1:5000/v1/models
-result = {"object":"list","data":[{"id":"mistral:7b","object":"model","created":1770000012,"owned_by":"library"},{"id":"phi3:mini","object":"model","created":1770000012,"owned_by":"library"}]}
-
-
-"""
-
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:5000")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", 60))  # seconds
 
 
 class OllamaClient:
-    def __init__(self, host=OLLAMA_HOST, model=OLLAMA_MODEL, timeout=OLLAMA_TIMEOUT):
+    def __init__(self, host, model, timeout):
         self.host = host.rstrip("/")  # remove trailing slash if any
         self.model = model
         self.timeout = timeout
@@ -187,4 +169,3 @@ if __name__ == "__main__":
         print(f"Model: - {model['id']}")
 
     model_info = client.connect_to_model()
-    print(f"Model info for {OLLAMA_MODEL}:", model_info)

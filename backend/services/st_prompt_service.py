@@ -6,6 +6,7 @@ from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 from core.ollama_client import OllamaClient
 from core.celery_tasks import send_prompt_to_ai
+from core.config import settings
 
 lg = get_logger(script_path=__file__)
 
@@ -50,6 +51,7 @@ class RestructuredPromptService:
 
                 # Create Pending Object
                 st_prompt = PromptSchemaOutput(
+                    structured_prompt_id=prompt_id,
                     structured_prompt=None,
                     natural_prompt=natural,
                     status="PENDING",
@@ -73,15 +75,18 @@ class RestructuredPromptService:
 
             else:
                 # Synchronous Normal Flow
+                prompt_id = str(uuid.uuid4())
                 st_prompt = self.psystem.create_prompt_normal_way(
                     prompt_data=prompt_data
                 )
+                st_prompt.structured_prompt_id = prompt_id
 
                 self.save_structured_prompt(
                     structured_prompt=st_prompt,
                     db=db,
                     author_id=prompt_data.author_id,
                     original_prompt_id=prompt_data.prompt_id,
+                    prompt_id=prompt_id,
                 )
 
                 return st_prompt
@@ -119,6 +124,10 @@ class RestructuredPromptService:
             # Remove details as it is not a column in DB
             if "details" in st_prompt_dict:
                 del st_prompt_dict["details"]
+
+            # Remove structured_prompt_id as DB uses prompt_id
+            if "structured_prompt_id" in st_prompt_dict:
+                del st_prompt_dict["structured_prompt_id"]
 
             # Generate new PK or use provided for structured_prompts table
             st_prompt_dict["prompt_id"] = (
@@ -208,6 +217,71 @@ class RestructuredPromptService:
         """
         lg.debug("Getting all the restructured prompts.")
         return None
+
+    def get_structured_prompt_by_id(
+        self, prompt_id: str, db: Session
+    ) -> PromptSchemaOutput:
+        """
+        Retrieve a single structured prompt by its Prompt ID (UUID).
+        Args:
+            prompt_id (str): The structured prompt ID.
+            db (Session): SQLAlchemy database session.
+        Returns:
+            PromptSchemaOutput: The structure prompt object or None.
+        """
+        st_prompt_db = (
+            db.query(StructuredPrompts)
+            .filter(StructuredPrompts.prompt_id == prompt_id)
+            .first()
+        )
+        if not st_prompt_db:
+            return None
+
+        # Reconstruct PromptSchema for details
+        # Note: We need to fetch original prompt info?
+        # The schema requires details: PromptSchema.
+        # But StructuredPrompts database model might imply we can reach original prompt via relationship.
+        # `st_prompt_db.original_prompt` should be available if relationship is loaded.
+
+        details = PromptSchema(
+            prompt_id=st_prompt_db.original_prompt.prompt_id
+            if st_prompt_db.original_prompt
+            else None,
+            author_id=st_prompt_db.author_id,
+            created_at=st_prompt_db.original_prompt.created_at
+            if st_prompt_db.original_prompt
+            else None,
+            title=st_prompt_db.original_prompt.title
+            if st_prompt_db.original_prompt
+            else None,
+            role=st_prompt_db.original_prompt.role
+            if st_prompt_db.original_prompt
+            else None,
+            task=st_prompt_db.original_prompt.task
+            if st_prompt_db.original_prompt
+            else None,
+            output=st_prompt_db.original_prompt.output
+            if st_prompt_db.original_prompt
+            else None,
+            tags=st_prompt_db.original_prompt.tags
+            if st_prompt_db.original_prompt
+            else [],
+            constraints=st_prompt_db.original_prompt.constraints
+            if st_prompt_db.original_prompt
+            else None,
+            personality=st_prompt_db.original_prompt.personality
+            if st_prompt_db.original_prompt
+            else None,
+        )
+
+        return PromptSchemaOutput(
+            structured_prompt_id=st_prompt_db.prompt_id,
+            structured_prompt=st_prompt_db.structured_prompt,
+            natural_prompt=st_prompt_db.natural_prompt,
+            status=st_prompt_db.status or "COMPLETED",  # Default for old records
+            error_message=st_prompt_db.error_message,
+            details=details,
+        )
 
     def get_one_structured_prompt_by_user_id(self, id: str, db: Session):
         """
@@ -299,7 +373,11 @@ class PromptSystem:
 
         try:
             # TODO: add option for changing client in the future for openai or custom ai.
-            client = OllamaClient()
+            client = OllamaClient(
+                host=settings.OLLAMA_HOST,
+                model=settings.OLLAMA_MODEL,
+                timeout=settings.OLLAMA_TIMEOUT,
+            )
 
             system_instruction = (
                 "You are an expert prompt engineer. Refine the following user request into a clear, "

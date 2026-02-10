@@ -5,7 +5,6 @@ import uuid
 
 # TODO: Revert to EmailStr when email-validator is installed
 # from pydantic import EmailStr
-EmailStr = str
 
 
 class PromptSchema(BaseModel):
@@ -30,6 +29,7 @@ class PromptSchema(BaseModel):
 
 class PromptSchemaOutput(BaseModel):
     # so this is the response schema for our modified prompt
+    structured_prompt_id: Optional[str] = None
     structured_prompt: Optional[str] = None
     natural_prompt: Optional[str] = None
     status: str = "COMPLETED"
@@ -39,6 +39,12 @@ class PromptSchemaOutput(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PromptTaskResponse(BaseModel):
+    prompt_id: str
+    status: str
+    message: str = "Prompt generation started."
 
 
 class UserPromptsSchema(PromptSchema):

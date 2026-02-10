@@ -10,10 +10,10 @@ Note:
     FileResponse is currently imported for potential future use in endpoints that may need to return files (e.g., prompt exports or downloads).
 """
 
-from typing import List
+from typing import List, Union
 from fastapi import APIRouter, status, Depends, HTTPException
 
-from core.schemas import PromptSchema, PromptSchemaOutput
+from core.schemas import PromptSchema, PromptSchemaOutput, PromptTaskResponse
 from auth.dependencies import get_current_user
 from core.custom_error_handlers import PromptNotModified, PromptsNotFoundForCurrentUser
 from sqlalchemy.orm import Session
@@ -36,12 +36,16 @@ lg = get_logger(__file__)
 
 
 # route for recieving prompts
-@router.post("/", status_code=status.HTTP_200_OK, response_model=PromptSchemaOutput)
+@router.post(
+    "/",
+    status_code=status.HTTP_200_OK,
+    response_model=Union[PromptSchemaOutput, PromptTaskResponse],
+)
 def create_new_prompt(
     prompt_data: PromptSchema,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-) -> PromptSchemaOutput:
+) -> Union[PromptSchemaOutput, PromptTaskResponse]:
     """
     Create a new prompt and its structured version.
 
@@ -55,7 +59,7 @@ def create_new_prompt(
         current_user (User, optional): The currently authenticated user dependency.
 
     Returns:
-        PromptSchemaOutput: The structured prompt data.
+        Union[PromptSchemaOutput, PromptTaskResponse]: The structured prompt data or task info.
 
     Raises:
         PromptNotModified: If the structured prompt creation fails.
@@ -82,11 +86,44 @@ def create_new_prompt(
         )
         # lg.debug(f"Restructured prompt: {st_prompt}")
         if st_prompt is not None:
+            if use_ai:
+                return PromptTaskResponse(
+                    prompt_id=st_prompt.structured_prompt_id,
+                    status=st_prompt.status,
+                )
             return st_prompt
 
     else:
         # if the structured prompt creation fails, we can still return the original prompt data
         raise PromptNotModified
+
+
+@router.get(
+    "/status/{prompt_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=PromptSchemaOutput,
+)
+def get_generation_status(
+    prompt_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Check the status of an AI prompt generation task.
+    """
+    st_prompt = st_prompt_service.get_structured_prompt_by_id(
+        prompt_id=prompt_id, db=db
+    )
+    if not st_prompt:
+        raise HTTPException(status_code=404, detail="Structured prompt not found")
+
+    # Ensure user owns it
+    if str(st_prompt.details.author_id) != str(current_user.user_id):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view this prompt"
+        )
+
+    return st_prompt
 
 
 # NOTE: so instead of separately returning the prompt and structured prompt for this routes
