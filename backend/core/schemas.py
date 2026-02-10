@@ -30,8 +30,10 @@ class PromptSchema(BaseModel):
 
 class PromptSchemaOutput(BaseModel):
     # so this is the response schema for our modified prompt
-    structured_prompt: str
-    natural_prompt: str
+    structured_prompt: Optional[str] = None
+    natural_prompt: Optional[str] = None
+    status: str = "COMPLETED"
+    error_message: Optional[str] = None
     # we need to return the prompt id and author id to link the prompt and structured prompt together, but from the PromptSchema
     details: PromptSchema
 

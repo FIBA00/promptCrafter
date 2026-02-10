@@ -1,8 +1,8 @@
 import os
+import re
 import json
 import requests
 from dotenv import load_dotenv
-from .formatters import clean_json_block
 
 # Load environment variables
 load_dotenv()
@@ -159,6 +159,22 @@ class OllamaClient:
                 # Debug info
                 with open(output_file, "r") as f:
                     print(f"File content was: {f.read()}")
+
+
+def clean_json_block(text: str) -> str:
+    """
+    Cleans a JSON string from markdown code blocks if present.
+    Example:
+    ```json
+    {"key": "value"}
+    ```
+    becomes {"key": "value"}
+    """
+    # Remove ```json or ``` at the start
+    text = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    # Remove ``` at the end
+    text = re.sub(r"\s*```$", "", text)
+    return text.strip()
 
 
 # Example usage

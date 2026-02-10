@@ -5,6 +5,7 @@ from db.models import StructuredPrompts
 from core.schemas import PromptSchema, PromptSchemaOutput
 from utility.logger import get_logger
 from core.ollama_client import OllamaClient
+from core.celery_tasks import send_prompt_to_ai
 
 lg = get_logger(script_path=__file__)
 
@@ -36,25 +37,58 @@ class RestructuredPromptService:
             PromptSchemaOutput: The generated structured and natural prompt.
         """
         try:
-            # TODO: Migrate the database driver to async because this method alone requires async job.
             if use_ai:
-                st_prompt = self.psystem.create_prompt_using_ai(prompt_data=prompt_data)
+                # Async AI Flow
+                prompt_id = str(uuid.uuid4())
+                natural = self.psystem.build_natural_prompt(
+                    prompt_data.role,
+                    prompt_data.task,
+                    prompt_data.constraints,
+                    prompt_data.output,
+                    prompt_data.personality,
+                )
+
+                # Create Pending Object
+                st_prompt = PromptSchemaOutput(
+                    structured_prompt=None,
+                    natural_prompt=natural,
+                    status="PENDING",
+                    details=prompt_data,
+                )
+
+                # Save immediately to DB with PENDING status
+                self.save_structured_prompt(
+                    structured_prompt=st_prompt,
+                    db=db,
+                    author_id=prompt_data.author_id,
+                    original_prompt_id=prompt_data.prompt_id,
+                    prompt_id=prompt_id,
+                )
+
+                # Prepare and Dispatch Celery Task
+                messages = self.psystem.prepare_ai_messages(prompt_data)
+                send_prompt_to_ai.delay(messages=messages, prompt_id=prompt_id)
+
+                return st_prompt
+
             else:
+                # Synchronous Normal Flow
                 st_prompt = self.psystem.create_prompt_normal_way(
                     prompt_data=prompt_data
                 )
 
-            self.save_structured_prompt(
-                structured_prompt=st_prompt,
-                db=db,
-                author_id=prompt_data.author_id,
-                original_prompt_id=prompt_data.prompt_id,
-            )
+                self.save_structured_prompt(
+                    structured_prompt=st_prompt,
+                    db=db,
+                    author_id=prompt_data.author_id,
+                    original_prompt_id=prompt_data.prompt_id,
+                )
 
-            return st_prompt
+                return st_prompt
 
         except Exception as e:
             lg.error(f"Error while creating structured_prompt: {str(e)}")
+            raise e
 
     def save_structured_prompt(
         self,
@@ -62,6 +96,7 @@ class RestructuredPromptService:
         db: Session,
         author_id: str = None,
         original_prompt_id: str = None,
+        prompt_id: str = None,
     ):
         """
         Save a structured prompt to the database.
@@ -70,6 +105,7 @@ class RestructuredPromptService:
             db (Session): SQLAlchemy database session.
             author_id (str): The ID of the author.
             original_prompt_id (str): The ID of the original prompt (optional).
+            prompt_id (str): Explicit Prompt ID (optional)
         Returns:
             PromptSchemaOutput: The validated prompt object after saving.
         Raises:
@@ -84,8 +120,10 @@ class RestructuredPromptService:
             if "details" in st_prompt_dict:
                 del st_prompt_dict["details"]
 
-            # Generate new PK for structured_prompts table
-            st_prompt_dict["prompt_id"] = str(uuid.uuid4())
+            # Generate new PK or use provided for structured_prompts table
+            st_prompt_dict["prompt_id"] = (
+                str(prompt_id) if prompt_id else str(uuid.uuid4())
+            )
 
             # Assign foreign keys
             if author_id:
@@ -219,8 +257,28 @@ class PromptSystem:
             personality=personality,
         )
         return PromptSchemaOutput(
-            structured_prompt=structured, natural_prompt=natural, details=prompt_data
+            structured_prompt=structured,
+            natural_prompt=natural,
+            details=prompt_data,
+            status="COMPLETED",
         )
+
+    def prepare_ai_messages(self, prompt_data: PromptSchema) -> list:
+        natural_base = self.build_natural_prompt(
+            prompt_data.role,
+            prompt_data.task,
+            prompt_data.constraints,
+            prompt_data.output,
+            prompt_data.personality,
+        )
+        system_instruction = (
+            "You are an expert prompt engineer. Refine the following user request into a clear, "
+            "structured, and highly effective prompt. Return ONLY the improved prompt text."
+        )
+        return [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": natural_base},
+        ]
 
     def create_prompt_using_ai(self, prompt_data: PromptSchema) -> PromptSchemaOutput:
         """
@@ -240,6 +298,7 @@ class PromptSystem:
         )
 
         try:
+            # TODO: add option for changing client in the future for openai or custom ai.
             client = OllamaClient()
 
             system_instruction = (
