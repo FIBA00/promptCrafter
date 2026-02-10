@@ -9,12 +9,12 @@ c_app = Celery()
 c_app.config_from_object("core.config")
 
 
-@c_app.task()
-def send_email(
-    recipients: list[str], subject: str, template_body: dict, template_name: str
-):
-    message = create_message(
-        recipients=recipients, subject=subject, template_body=template_body
-    )
-    async_to_sync(mail.send_message)(message, template_name=template_name)
-    lg.info(f"Email sent to : {recipients}")
+# @c_app.task()
+# def send_email(
+#     recipients: list[str], subject: str, template_body: dict, template_name: str
+# ):
+#     message = create_message(
+#         recipients=recipients, subject=subject, template_body=template_body
+#     )
+#     async_to_sync(mail.send_message)(message, template_name=template_name)
+#     lg.info(f"Email sent to : {recipients}")

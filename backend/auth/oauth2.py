@@ -37,12 +37,14 @@ def hash_password(password: str) -> str:
 
 def hash_token(token: str) -> str:
     """Hash a token for storage."""
-    return bcrypt.hashpw(token.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    truncated_token = token.encode("utf-8")[:72]
+    return bcrypt.hashpw(truncated_token, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_token(token: str, hashed_token: str) -> bool:
     """Verify a token against its hash."""
-    return bcrypt.checkpw(token.encode("utf-8"), hashed_token.encode("utf-8"))
+    truncated_token = token.encode("utf-8")[:72]
+    return bcrypt.checkpw(truncated_token, hashed_token.encode("utf-8"))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

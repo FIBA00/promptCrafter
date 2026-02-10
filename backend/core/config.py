@@ -8,26 +8,16 @@ class Settings(BaseSettings):
     DATABASE_HOSTNAME: str
     DATABASE_PORT: int
     DATABASE_NAME: str
-    REDIS_URL: str = "redis://localhost:6379/0"
     VERSION: str
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
     JWT_REFRESH_TOKEN_EXPIRY_MINUTES: int
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: str
-    MAIL_FROM: str
-    MAIL_PORT: int
-    MAIL_SERVER: str
-    MAIL_FROM_NAME: str
-    MAIL_STARTTLS: bool = True
-    MAIL_SSL_TLS: bool = False
-    USE_CREDENTIALS: bool = True
-    VALIDATE_CERTS: bool = True
-    DOMAIN_NAME: str
+    JTI_EXPIRY_SECONDS: int = 3600
+    REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-    JTI_EXPIRY_SECONDS: int = 3600
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     class Config:
         # Construct absolute path to .env file in the backend root directory

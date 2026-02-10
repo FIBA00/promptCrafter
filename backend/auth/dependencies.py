@@ -9,6 +9,7 @@ from core.schemas import TokenData
 from core.custom_error_handlers import (
     InvalidToken,
     AccessTokenRequired,
+    RefreshTokenRequired,
 )
 from db.redis import token_in_blocklist
 from auth.oauth2 import decode_access_token
@@ -63,7 +64,7 @@ def get_current_admin_user(
     return current_user
 
 
-def get_access_token(
+async def get_access_token(
     creds: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ) -> str:
     lg.debug(f"Extracted credentials scheme: {creds.scheme}")
@@ -76,7 +77,7 @@ def get_access_token(
         raise InvalidToken()
 
     jti = token_data.get("jti")
-    if jti and token_in_blocklist(jti):
+    if jti and await token_in_blocklist(jti):
         lg.debug(f"Token JTI {jti} is in blocklist.")
         raise InvalidToken()
 
@@ -87,7 +88,7 @@ def get_access_token(
     return token
 
 
-def get_refresh_token(
+async def get_refresh_token(
     creds: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
 ) -> str:
     lg.debug(f"Extracted credentials scheme: {creds.scheme}")
@@ -100,14 +101,14 @@ def get_refresh_token(
         raise InvalidToken()
 
     jti = token_data.get("jti")
-    if jti and token_in_blocklist(jti):
+    if jti and await token_in_blocklist(jti):
         lg.debug(f"Token JTI {jti} is in blocklist.")
         raise InvalidToken()
 
     lg.debug("Token is valid")
     if not token_data.get("refresh", False):
         lg.error("Access token used where refresh token expected!")
-        raise AccessTokenRequired()
+        raise RefreshTokenRequired()
 
     lg.debug("Refresh token validated successfully")
     return token
