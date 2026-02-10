@@ -1,7 +1,6 @@
 from celery import Celery
 from asgiref.sync import async_to_sync
 
-from auth.send_mail import mail, create_message
 from utility.logger import get_logger
 
 lg = get_logger(__file__)

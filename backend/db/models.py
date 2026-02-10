@@ -56,6 +56,8 @@ class User(Base):
     phone_number = Column(String, nullable=True)
     is_admin = Column(Boolean, nullable=False, server_default=text("false"))
     is_verified = Column(Boolean, nullable=False, server_default=text("false"))
+    oauth_provider = Column(String, nullable=True)
+    oauth_id = Column(String, nullable=True)
 
     created_at = Column(
         TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
