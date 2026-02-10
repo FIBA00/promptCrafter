@@ -74,7 +74,8 @@ services:
                 ["CMD-SHELL", "pg_isready -U fraold -d promptcrafter_db_local"]
             interval: 5s
             timeout: 5s
-            retries: 5
+            retries: 10
+            start_period: 10s
 
     redis:
         image: redis:alpine
