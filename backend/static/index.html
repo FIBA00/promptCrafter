@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
         rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="./index.css">
 </head>
 
@@ -26,9 +28,19 @@
                 <button type="button" class="ghost" data-scroll-to-info>Flow map</button>
                 <button type="button" class="primary" data-scroll-to-form>Create prompt</button>
                 <button id="login-btn" type="button" class="primary">Login</button>
+                <button id="profile-btn" type="button" class="profile-area" aria-label="Profile menu">
+                    <span class="profile-avatar">
+                        <span id="profile-initials" class="avatar-initials">?</span>
+                    </span>
+                    <span class="profile-text">
+                        <span id="profile-name" class="profile-name">Guest</span>
+                        <span id="profile-email" class="profile-email">guest@promptcrafter.ai</span>
+                    </span>
+                    <span id="profile-plan" class="profile-plan">Free</span>
+                </button>
                 <div id="profile-menu" class="profile-menu" style="display: none;">
                     <div class="profile-info">
-                        <p id="profile-email"></p>
+                        <p id="profile-menu-email"></p>
                         <button id="logout-btn" class="ghost">Logout</button>
                     </div>
                 </div>
@@ -174,6 +186,7 @@
                 <button id="modal-login-btn" class="primary">Login to Continue</button>
             </div>
         </div>
+        <div id="login-toast" class="toast" aria-live="polite"></div>
     </div>
     <script src="index.js"></script>
 </body>

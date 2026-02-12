@@ -130,7 +130,7 @@ def login_google():
 @router.get("/auth/google")
 def auth_google(request: Request, db: Session = Depends(get_db)):
     result = uservice.process_google_auth(str(request.url), db)
-    response = RedirectResponse(url="/api/v1/pcrafter/home/")
+    response = RedirectResponse(url="/")
     response.set_cookie(
         key="access_token",
         value=result["access_token"],
