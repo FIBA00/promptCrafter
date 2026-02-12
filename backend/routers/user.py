@@ -89,6 +89,20 @@ def get_new_access_token(
     }
 
 
+@router.get("/me", response_model=UserOutSchema)
+def get_current_user(
+    token: str = Depends(get_access_token), db: Session = Depends(get_db)
+):
+    lg.info("Getting current user")
+    token_data = decode_access_token(token)
+    if token_data is None or "user_id" not in token_data:
+        raise InvalidToken()
+
+    user_id = token_data.get("user_id")
+    user = uservice.get_user_by_id(user_id=user_id, db=db)
+    return user
+
+
 @router.post(path="/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     token: str = Depends(get_access_token), db: Session = Depends(dependency=get_db)
@@ -116,4 +130,19 @@ def login_google():
 @router.get("/auth/google")
 def auth_google(request: Request, db: Session = Depends(get_db)):
     result = uservice.process_google_auth(str(request.url), db)
-    return JSONResponse(content=result)
+    response = RedirectResponse(url="/api/v1/pcrafter/home/")
+    response.set_cookie(
+        key="access_token",
+        value=result["access_token"],
+        httponly=True,
+        secure=False,  # Set to True in production
+        samesite="lax",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=result["refresh_token"],
+        httponly=True,
+        secure=False,  # Set to True in production
+        samesite="lax",
+    )
+    return response

@@ -26,6 +26,12 @@
                 <button type="button" class="ghost" data-scroll-to-info>Flow map</button>
                 <button type="button" class="primary" data-scroll-to-form>Create prompt</button>
                 <button id="login-btn" type="button" class="primary">Login</button>
+                <div id="profile-menu" class="profile-menu" style="display: none;">
+                    <div class="profile-info">
+                        <p id="profile-email"></p>
+                        <button id="logout-btn" class="ghost">Logout</button>
+                    </div>
+                </div>
             </div>
         </nav>
         <header class="hero">
@@ -125,6 +131,16 @@
                     <p class="empty-state">No prompt yet. Fill the form to see the structured content.</p>
                 </div>
                 <div class="result-meta" id="resultMeta"></div>
+                <div class="copy-options">
+                    <label>
+                        <input type="radio" name="copy-option" value="structured" checked>
+                        Structured
+                    </label>
+                    <label>
+                        <input type="radio" name="copy-option" value="natural">
+                        Natural
+                    </label>
+                </div>
                 <button id="btn-copy-prompt" type="button" class="primary">Copy Prompt</button>
 
             </section>
@@ -151,6 +167,13 @@
                 </div>
             </section>
         </main>
+        <div id="login-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <p id="modal-message"></p>
+                <button id="modal-login-btn" class="primary">Login to Continue</button>
+            </div>
+        </div>
     </div>
     <script src="index.js"></script>
 </body>

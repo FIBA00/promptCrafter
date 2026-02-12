@@ -10,11 +10,11 @@ Note:
     FileResponse is currently imported for potential future use in endpoints that may need to return files (e.g., prompt exports or downloads).
 """
 
-from typing import List, Union
-from fastapi import APIRouter, status, Depends, HTTPException
+from typing import List, Union, Optional
+from fastapi import APIRouter, status, Depends, HTTPException, Request
 
-from core.schemas import PromptSchema, PromptSchemaOutput, PromptTaskResponse
-from auth.dependencies import get_current_user
+from core.schemas import PromptSchema, PromptSchemaOutput, PromptTaskResponse, TokenData
+from auth.dependencies import get_current_user, get_optional_current_user
 from core.custom_error_handlers import PromptNotModified, PromptsNotFoundForCurrentUser
 from sqlalchemy.orm import Session
 from db.database import get_db
@@ -22,6 +22,8 @@ from services.prompt_service import PromptService
 from services.st_prompt_service import RestructuredPromptService
 from services.user_service import UserService
 from utility.logger import get_logger
+from redis import Redis
+from core.config import settings
 
 
 router = APIRouter(prefix="/pcrafter", tags=["prompts"])
@@ -31,20 +33,23 @@ st_prompt_service = RestructuredPromptService()
 user_service = UserService()
 lg = get_logger(__file__)
 
+ANONYMOUS_USER_ID = "00000000-0000-0000-0000-000000000000"
+
 # Note: We rely on the global exception handler in main.py to catch and log any DB errors
 # This keeps our router code clean and the logging consistent.
 
 
 # route for recieving prompts
 @router.post(
-    "/",
+    "/process",
     status_code=status.HTTP_200_OK,
     response_model=Union[PromptSchemaOutput, PromptTaskResponse],
 )
 def create_new_prompt(
     prompt_data: PromptSchema,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: Optional[TokenData] = Depends(get_optional_current_user),
 ) -> Union[PromptSchemaOutput, PromptTaskResponse]:
     """
     Create a new prompt and its structured version.
@@ -67,20 +72,38 @@ def create_new_prompt(
     # TODO: implement ai based prompt creation , split logic here, where
     #  only verified users can access and the rest uses normal one
 
+    author_id = current_user.user_id if current_user else ANONYMOUS_USER_ID
+    use_ai = current_user.is_verified if current_user else False
+
     # Rate Limiting Logic
-    if current_user.is_verified:
-        # Check and deduct token before processing
-        # We assume 1 token per request for now
+    if current_user and current_user.is_verified:
+        # Check and deduct token before processing for verified users
         user_service.check_daily_limit(db=db, user_id=current_user.user_id, cost=1)
+    elif not current_user:
+        # Rate limit for anonymous users: 3 prompts per IP per day
+        redis = Redis.from_url(settings.REDIS_URL)
+        client_ip = request.client.host
+        key = f"anonymous_limit:{client_ip}"
+        count = redis.get(key)
+        if count and int(count) >= 3:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded for anonymous users. Please login to continue using the service."
+            )
+        redis.incr(key)
+        redis.expire(key, 86400)  # Expire in 1 day
+    # Ensure anonymous user exists if applicable
+    if author_id == ANONYMOUS_USER_ID:
+        user_service.get_or_create_anonymous_user(db=db, anonymous_id=ANONYMOUS_USER_ID)
+    # Ensure anonymous user exists if applicable
+    if author_id == ANONYMOUS_USER_ID:
+        user_service.ensure_anonymous_user(db=db, user_id=ANONYMOUS_USER_ID)
 
     new_prompt = prompt_service.save_prompt(
-        db=db, prompt_data=prompt_data, author_id=current_user.user_id
+        db=db, prompt_data=prompt_data, author_id=author_id
     )
     lg.debug(f"Original prompt: {new_prompt}")
     if new_prompt:
-        # Determine if we should use AI based on user verification
-        use_ai = current_user.is_verified
-
         st_prompt = st_prompt_service.create_structured_prompt(
             db=db, prompt_data=new_prompt, use_ai=use_ai
         )

@@ -6,7 +6,7 @@ RESTful Prompt restructing app
 
 import os
 import sys
-
+from pathlib import Path
 # Add the directory containing this file to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -30,8 +30,9 @@ from utility.logger import get_logger
 lg = get_logger(script_path=__file__)
 SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.DATABASE_USERNAME}:{settings.DATABASE_PASSWORD}@{settings.DATABASE_HOSTNAME}:{settings.DATABASE_PORT}/{settings.DATABASE_NAME}"
 REDIS_URL = settings.REDIS_URL
-STATIC_FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
+STATIC_FRONTEND_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "static"
+TEMPLATES_DIR = STATIC_FRONTEND_DIR / "sqladmin"
 # our app
 description = """
 A RESTful API for a AI prompt restructing system.
@@ -102,14 +103,14 @@ app.include_router(
 
 
 app.mount(
-    path=f"/api/{settings.VERSION or version}/home",
+    path="/",
     app=StaticFiles(directory=STATIC_FRONTEND_DIR, html=True),
     name="frontend",
 )
 
 # Admin Interface
 authentication_backend = AdminAuth(secret_key=settings.JWT_SECRET_KEY)
-TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+
 admin = Admin(
     app=app,
     engine=engine,

@@ -28,6 +28,29 @@ lg = get_logger(__file__)
 
 
 class UserService:
+    def get_or_create_anonymous_user(self, db: Session, anonymous_id: str):
+        try:
+            user = db.query(User).filter(User.user_id == anonymous_id).first()
+            if not user:
+                lg.info(f"Creating anonymous user with ID: {anonymous_id}")
+                new_user = User(
+                    user_id=anonymous_id,
+                    username="Anonymous",
+                    email="anonymous@promptcrafter.local",
+                    password=hash_password("anonymous_secret_dummy_password"),  # Needs a dummy password
+                    is_verified=False,
+                    is_admin=False
+                )
+                db.add(new_user)
+                db.commit()
+                db.refresh(new_user)
+                return new_user
+            return user
+        except SQLAlchemyError as e:
+            db.rollback()
+            lg.error(f"Error getting/creating anonymous user: {str(e)}")
+            raise e
+
     def validate_password_strength(self, password: str):
         if len(password) < 8:
             raise WeakPasswordError("Password must be at least 8 characters long")
@@ -109,6 +132,31 @@ class UserService:
             # This catches any other unexpected Python error (like a bug in our code)
             lg.error(f"Unexpected Error in save_prompt: {str(e)}")
             raise e
+
+    def ensure_anonymous_user(self, db: Session, user_id: str):
+        """Ensure the anonymous user exists in the database."""
+        try:
+            user = db.query(User).filter(User.user_id == user_id).first()
+            if not user:
+                lg.info(f"Creating anonymous user {user_id}")
+                # Create with dummy data
+                anon_user = User(
+                    user_id=user_id,
+                    username="anonymous_guest",
+                    email="anonymous@guest.com",
+                    password=hash_password("anonymous"),
+                    is_verified=False,
+                    is_admin=False
+                )
+                db.add(anon_user)
+                db.commit()
+        except IntegrityError:
+            db.rollback()
+            # Already exists (race condition)
+            pass
+        except Exception as e:
+            lg.error(f"Error ensuring anonymous user: {str(e)}")
+            # Log but don't crash, prompt save might fail with FK error but we tried
 
     def get_user_by_email(self, email: EmailStr, db: Session):
         try:
