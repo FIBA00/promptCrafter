@@ -280,7 +280,7 @@ tzdata==2025.3
     #   pendulum
 tzlocal==5.3.1
     # via celery
-ujson==5.11.0
+ujson==5.12.0
     # via fastapi
 urllib3==2.6.3
     # via
